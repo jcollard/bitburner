@@ -1,0 +1,80 @@
+var brute = true;
+var ftp = true;
+var smtp = true;
+var http = true;
+var ports = 4;
+
+var newArgs = "";
+var splitArgs = args[0].split(",");
+
+
+function checked(neighbor) {
+	if (neighbor.startsWith("purchased_server")) return true;
+	var toCheck = splitArgs;
+	for (var ix = 0; ix < toCheck.length; ix++) {
+		if (toCheck[ix] === neighbor) return true;
+	}
+	return false;
+}
+
+function addArgs(neighbors) {
+	var n = args[0];
+	for (var ix = 0; ix < neighbors.length; ix++) {
+		var neighbor = neighbors[ix];
+		n += "," + neighbor;
+	}
+	return n;
+}
+
+function recurse(neighbor) {
+	// Always skip home
+	scp(getScriptName(), neighbor);
+	// Do not hack machines that cannot run this script
+	if (getServerMaxRam(neighbor) < getScriptRam(getScriptName())) return;
+
+	// Stop everything on server and hack neighbors
+	killall(neighbor);
+	exec(getScriptName(), neighbor, 1, newArgs);
+}
+
+
+function doHack(neighbor) {
+	// Skip hacking if root access is already available
+	if (hasRootAccess(neighbor)) return;
+
+
+	// Skip servers that we do not have a high enough level to hack
+	if (getServerNumPortsRequired(neighbor) > ports) return;
+	if (getServerRequiredHackingLevel(neighbor) > getHackingLevel()) return;
+
+
+	// Otherwise open ports
+	if (brute) brutessh(neighbor);
+	if (ftp) ftpcrack(neighbor);
+	if (smtp) relaysmtp(neighbor);
+	if (http) httpworm(neighbor);
+
+	// Get root access
+	nuke(neighbor);
+}
+
+function main() {
+	// print ("Waiting 5 seconds to start.");
+	// sleep(5000);
+	var neighbors = scan();
+	// Build up the new argument list to recurse with
+	newArgs = addArgs(neighbors);
+	for (var ix = 0; ix < neighbors.length; ix++) {
+		var neighbor = neighbors[ix];
+		// If we have already checked this computer, no need to check again
+		if (neighbor === "home" || checked(neighbor)) continue;
+
+		// recurse out
+		recurse(neighbor);
+		// then do hack
+		doHack(neighbor);
+
+	}
+}
+
+main();

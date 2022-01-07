@@ -1,0 +1,10 @@
+var serverName = args[0];
+while (true) {
+	if (getServerSecurityLevel(serverName) > getServerMinSecurityLevel(serverName) * 1.5) {
+		weaken(serverName);
+	} else if (getServerMoneyAvailable(serverName) < 500000) {
+		grow(serverName);
+	} else {
+		hack(serverName);
+	}
+}

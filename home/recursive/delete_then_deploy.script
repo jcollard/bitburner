@@ -1,0 +1,14 @@
+while (true) {
+	// run recursive/delete.script /markers/is_basic_hack.txt
+	// Delete previous deployment
+	run("recursive/delete.script", 1, "/markers/is_basic_hack.txt");
+	sleep(1000*20); 
+	// Hack new neighbors
+	run("recursive/hack_neighbors.script", 1);
+	sleep(1000*20); 
+	//run neighbor/deploy.script /simple/basic_hack.script /markers/is_basic_hack.txt
+	// Run deployment
+	run("neighbor/deploy.script", 1, "/simple/basic_hack.script", "/markers/is_basic_hack.txt");
+	// re-run every 4 hours
+	sleep(1000*60*60*4);
+}

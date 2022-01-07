@@ -1,0 +1,5 @@
+var target = args[0];
+if (!target) throw new Error("No target specified. First argument must be a server name.");
+
+var minSecurity = getServerMinSecurityLevel(target);
+var currSecurity = getServerSecurityLevel(target);

@@ -1,0 +1,18 @@
+var index = 0;
+var prefix = "purchased_server";
+var candiate_name = prefix + "_" + index;
+var deployScript = "/neighbor/weaken.script";
+var neighbors = scan();
+var neighborArgs = neighbors.join(",");
+
+while (serverExists(candiate_name)) {
+	scp(deployScript, candiate_name);
+	var scriptRam = getScriptRam(deployScript, candiate_name);
+	var serverRam = getServerMaxRam(candiate_name);
+	var maxThreads = Math.floor(serverRam / scriptRam);
+	killall(candiate_name);
+	exec(deployScript, candiate_name, maxThreads, neighborArgs);
+	sleep(30 * 1000);
+	index++;
+	candiate_name = prefix + "_" + index;
+}

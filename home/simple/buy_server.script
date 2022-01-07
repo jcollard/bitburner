@@ -1,0 +1,17 @@
+var index = 0;
+var prefix = "purchased_server";
+if (args.length == 0) {
+	toast("First argument should be the amount of ram to purchase.", "error");
+	exit();
+}
+var ram = args[0];
+
+var cost = (getPurchasedServerCost(ram) / 1000000);
+if(prompt("This will cost: " + cost + " million")) {
+	 var candidate_name = prefix + "_" + index;
+	while (serverExists(candidate_name)) {
+		index++;
+		candidate_name = prefix + "_" + index;
+	}
+	purchaseServer(candidate_name, ram);
+}

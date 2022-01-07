@@ -1,0 +1,6 @@
+var serverName = args[0];
+while(true)
+{
+	grow(serverName);
+	weaken(serverName);
+}

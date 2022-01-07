@@ -1,0 +1,12 @@
+// Deploys a script to a specified server and runs it against that
+// server with the maximum number of threads.
+
+var scriptName = args[0];
+var serverName = args[1];
+var serverArg = args[2];
+scp(scriptName, serverName);
+var scriptRam = getScriptRam(scriptName, serverName);
+var serverRam = getServerMaxRam(serverName);
+var maxThreads = Math.floor(serverRam / scriptRam);
+killall(serverName);
+exec(scriptName, serverName, maxThreads, serverArg);
