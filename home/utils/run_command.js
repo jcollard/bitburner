@@ -1,3 +1,13 @@
+
+/**
+ * Executes the specified command in the terminal by typing it out and pressing enter.
+ * Sleeps for 1 second after the command is executed.
+ * If the terminal is not available, a toast will appear with a warning and this function will
+ * sleep for 10 seconds.
+ * @param {NS} ns the Singularity interface
+ * @param {string} command The command to be executed
+ * @returns void
+ */
 export default async function execute_terminal(ns, command) {
 	const terminalInput = document.getElementById("terminal-input");
 	// await ns.prompt(terminalInput);
