@@ -18,6 +18,7 @@ export default class ServerCacheEntry {
         this.util = new Util(ns);
         this.host_name = host_name;
         this.cache = cache;
+        this.prep_until = 0;
     }
 
     is_prepped() {
@@ -27,7 +28,12 @@ export default class ServerCacheEntry {
     }
 
     async tick() {
-        debug("Processing %s", this.host_name);
+        debug("ServerCacheEntry(%s).tick()", this.host_name);
+
+        if (this.prep_until > Date.now()) {
+            debug("    Server is being prepped...");
+            return;
+        }
 
         // If this server is not prepped, perform a prep step this tick.
         if (!this.is_prepped()) {
@@ -35,6 +41,8 @@ export default class ServerCacheEntry {
             await this.prep_for_batch();
             return;
         }
+
+        debug ("   Server is prepped!");
     }
 
     /**
@@ -48,11 +56,11 @@ export default class ServerCacheEntry {
         // Once a server is ready, it can be batched
         let weaken_threads = this.hacks.calc_weaken_threads_needed(this.host_name);
         debug("   Weaken Threads Needed: %s", weaken_threads);
-        let weaken_time = this.ns.getWeakenTime(this.host_name);
         if (weaken_threads > 0) {
+            this.prep_until = Date.now() + 100 + this.ns.getWeakenTime(this.host_name);
             let remaining_threads = await this.run_weaken(weaken_threads);
             let started = weaken_threads - remaining_threads;
-           debug("   Started %s Weaken Threads.", this.host_name, started);
+            debug("   Started %s Weaken Threads.", this.host_name, started);
             if (remaining_threads > 0) {
                 this.ns.toast("Out of Memory", "warning");
                 return false;
@@ -62,6 +70,7 @@ export default class ServerCacheEntry {
 
         let grow_threads = this.hacks.calc_grow_threads_needed(this.host_name);
         if (grow_threads > 0) {
+            this.prep_until = Date.now() + 100 + this.ns.getGrowTime(this.host_name);
             let remaining_threads = await this.run_grow(grow_threads);
             let started = grow_threads - remaining_threads;
             debug("   Started %s threads.", this.host_name, started);
