@@ -16,20 +16,32 @@ export async function main(ns) {
 
     if (ns.args.length == 0) throw new Error("Expected first argument to be a server name.");
     let target = ns.args[0];
-    let money = util.toMillions(ns.getServerMoneyAvailable(target));
-    let max_money = util.toMillions(ns.getServerMaxMoney(target));
-    let security = ns.getServerSecurityLevel(target);
-    let min_security = ns.getServerMinSecurityLevel(target);
-    let ram = ns.getServerUsedRam(target);
-    let max_ram = ns.getServerMaxRam(target);
+    let money = util.formatNum(ns.getServerMoneyAvailable(target));
+    let max_money = util.formatNum(ns.getServerMaxMoney(target));
+    let security = util.formatNum(ns.getServerSecurityLevel(target));
+    let min_security = util.formatNum(ns.getServerMinSecurityLevel(target));
+    let ram = util.formatNum(ns.getServerUsedRam(target));
+    let max_ram = util.formatNum(ns.getServerMaxRam(target));
 
     ns.tprintf("%s", target);
-    ns.tprintf("RAM: %s / %s", ram, max_ram);
-    ns.tprintf("Money: %s / %s", money, max_money);
-    ns.tprintf("Security: %s / %s", security, min_security);
+    freport("RAM:", fMinMax(ram, max_ram));
+    freport("Money:", fMinMax(money, max_money));
+    freport("Security:", fMinMax(security, min_security));
 
 
     // await ns.alert("Test");
+}
+
+function fMinMax(min, max) {
+    return NS.sprintf("%s / %s", min, max);
+}
+
+function freport(label, data, len) {
+    if (len === undefined) len = 32;
+    let cLen = label.length + data.length;
+    let pad = len - cLen;
+    let padded = data.padStart(data.length + pad, " ");
+    NS.tprintf("%s%s", label, padded);
 }
 
 function report(str, ...values) {

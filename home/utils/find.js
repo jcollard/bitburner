@@ -9,7 +9,7 @@ export async function main(ns) {
     let util = new Util(ns);
 
     report("+-------------------+");
-    report("| find.js           |");
+    report("| /utils/find.js    |");
     report("+-------------------+");
 
     if (ns.args.length == 0) throw new Error("Expected first argument to be a server name.");

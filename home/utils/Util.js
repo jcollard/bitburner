@@ -172,7 +172,7 @@ export default class Util {
 	   */
 	  formatNum(num) {
 		if (num < 1_000) {
-			return ("" + num).padStart(7, " ");
+			return ("" + num).substring(0, 7).padStart(7, " ");
 		}
 		if (num < 1_000_000) {
 			return this.toThousands(num);
