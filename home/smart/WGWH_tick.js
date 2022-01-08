@@ -1,4 +1,4 @@
-import WGWH from "/smart/WGWH.js"
+import WGWH from "/smart/WGWH.js";
 import Util from "/utils/Util.js";
 import HackUtil from "/utils/HackUtil.js";
 
@@ -10,13 +10,13 @@ export async function main(ns) {
     NS = ns;
     let util = new Util(ns);
     let hacks = new HackUtil(ns);
-    let wgwh = new WGWH(ns);
+    // let wgwh = new WGWH(ns);
 
     report("+-------------------+");
     report("| WGWH_tick.js       |");
     report("+-------------------+");
 
-    await wgwh.tick();
+    // await wgwh.tick();
 
     // await ns.alert("Test");
 }
