@@ -57,7 +57,11 @@ export default class HackUtil {
      * @returns The amount of RAM that is available on the specified server
      */
     get_available_RAM(...servers) {
-        let ram = (s) => this.ns.getServerMaxRam(s) - this.ns.getServerUsedRam(s);
+        let ram = (s) => { 
+            let available = this.ns.getServerMaxRam(s) - this.ns.getServerUsedRam(s);
+            if (available < this.HACK_RAM()) return 0;
+            return available
+        }
         return servers.map(ram).reduce(sum);
     }
 
