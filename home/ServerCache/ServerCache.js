@@ -4,6 +4,7 @@ import ServerCacheEntry from "/ServerCache/ServerCacheEntry.js";
 
 let NS = undefined;
 let DEBUG = true;
+let MIN_SLEEP_TIME = 5000;
 
 function debug(str, ...args) {
     if (!DEBUG) return;
@@ -20,6 +21,13 @@ export default class ServerCache {
         this.cache = {};
         this.hacks = new HackUtil(ns);
         this.util = new Util(ns);
+        this.next_action = 0;
+        this.MIN_SLEEP_TIME = 5000;
+    }
+
+    setNextAction(time) {
+        if (time > this.next_action) return;
+        this.next_action = time;
     }
 
     getServer(server) {

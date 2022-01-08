@@ -39,10 +39,42 @@ export default class ServerCacheEntry {
         if (!this.is_prepped()) {
             debug("Prepping %s", this.host_name);
             await this.prep_for_batch();
+            this.cache.setNextTime(this.prep_until);
             return;
         }
 
-        debug ("   Server is prepped!");
+        debug("   Server is prepped!");
+    }
+
+    calc_threads(max_ram) {
+        let max_threads = max_ram / this.hacks.HACK_RAM();
+        let thread_data = {};
+        thread_data.hack_threads = 1;
+        thread_data.total_threads = -1;
+        thread_data.counter_hack_threads = -1;
+        thread_data.grow_threads = -1;
+        thread_data.counter_grow_threads = -1;
+
+        // Find the largest number of threads necessary for this batch
+        // that will fit in the maximum amount of RAM.
+        while (thread_data.total_threads < max_threads) {
+            let hack_security = this.ns.hackAnalyzeSecurity(this.hack);
+            thread_data.counter_hack_threads = Math.ceil(this.hacks.calc_threads_to_weaken(hack_security));
+            let hack_percent = this.ns.hackAnalyze(this.host_name) * thread_data.hack_threads;
+            let max_money = this.ns.getServerMaxMoney(this.host_name);
+            let hack_amount = max_money * hack_percent;
+            let remaining = max_money - hack_amount;
+            // Never go below $1 million
+            if (remaining < 1_000_000) break;
+            let counter_growth = Math.max(1, hack_amount / remaining);
+            thread_data.grow_threads = Math.ceil(this.ns.growthAnalyze(this.host_name, counter_growth));
+            thread_data.counter_grow_threads = Math.ceil(this.ns.growthAnalyzeSecurity(thread_data.grow_threads));
+            thread_data.total_threads = thread_data.hack_threads + thread_data.counter_hack_threads + thread_data.grow_threads + thread_data.counter_grow_threads;
+            thread_data.hack_threads++;
+        }
+        debug("   Thread Total: " + thread_data.total_threads);
+        if (thread_data.total_threads === -1) return undefined;
+        return thread_data;
     }
 
     /**
@@ -125,4 +157,8 @@ export default class ServerCacheEntry {
         return threads_needed;
     }
 
+}
+
+class ThreadData {
+    
 }
