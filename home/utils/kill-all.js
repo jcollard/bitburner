@@ -5,4 +5,5 @@ export async function main(ns) {
 	utils.find_all_runnable(ns).forEach(s => {
 		ns.killall(s);
 	});
+	ns.killall("home");
 }

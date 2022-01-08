@@ -165,4 +165,13 @@ export default class Util {
 		return array;
 	  }
 
+	  /**
+	   * Given a number, convert it to a millions format
+	   * @param {number} num 
+	   * @returns string in the millions format
+	   */
+	  toMillions(num) {
+		  return (Math.ceil(num / 10000) / 100) + "m"; 
+	  }
+
 }
