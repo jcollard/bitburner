@@ -166,6 +166,16 @@ export default class Util {
 	  }
 
 	  /**
+	   * Displays the specified error to the terminal and then exits the script.
+	   * @param {*} str 
+	   * @param  {...any} args 
+	   */
+	  error(str, ...args) {
+		  this.ns.tprintf("ERROR: " + str, ...args);
+		  this.ns.exit();
+	  }
+
+	  /**
 	   * Given a number, converts it to the best 7 character length
 	   * @param {number} num 
 	   * @returns A string that is 7 characters in length

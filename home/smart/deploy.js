@@ -31,8 +31,9 @@ export async function main(ns) {
 	let next_grow_at = {};
 	let next_hack_at = {};
 
+	ns.tprintf("WARNING STILL IGNORING n00dles!");
 	while (true) {
-		hackables = utils.find_all_hackable(ns);
+		hackables = utils.find_all_hackable(ns).filter((s) => s !== "n00dles");
 		workers = sort_workers(ns, utils.find_all_runnable(ns));
 
 		notifications = "";

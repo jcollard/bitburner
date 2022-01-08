@@ -65,8 +65,9 @@ export default class ServerCacheEntry {
             let max_money = this.ns.getServerMaxMoney(this.host_name);
             let hack_amount = max_money * hack_percent;
             let remaining = max_money - hack_amount;
-            // Never go below $1 million
-            if (remaining < 1_000_000) break;
+            // Never go below $1 million (or 10% whichever is less)
+            let minimum = Math.min(1_000_000, max_money * 0.10);
+            if (remaining < minimum) break;
             let counter_growth = Math.max(1, hack_amount / remaining);
             thread_data.grow_threads = Math.ceil(this.ns.growthAnalyze(this.host_name, counter_growth));
             thread_data.counter_grow_threads = Math.ceil(this.ns.growthAnalyzeSecurity(thread_data.grow_threads));
