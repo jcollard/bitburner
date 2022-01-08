@@ -11,7 +11,7 @@ export async function main(ns) {
 		let cmp = (s0, s1) => ns.getHackTime(s0) - ns.getHackTime(s1);
 		hackable.sort(cmp);
 		let data = await utils.load_metadata(ns);
-		let toBackdoor = hackable.filter(s => !data.backdoors.includes(s));
+		let toBackdoor = hackable.filter(s => !data.backdoors.includes(s)).filter(s => s !== "w0r1d_d43m0n");
 		if (toBackdoor.length == 0) {
 			ns.toast("No hackable servers not marked as backdoored.");
 			await ns.sleep(1000 * 60);

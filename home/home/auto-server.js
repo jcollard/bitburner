@@ -20,7 +20,7 @@ export async function main(ns) {
 		let purchased = ns.purchaseServer(utils.purchased_prefix + "_" + count, RAM);
 		if (purchased) ns.toast("Purchased new server: " + purchased);
 		
-		await ns.sleep(1000 * 60);
+		await ns.sleep(1000 * 15);
 	}
 
 }

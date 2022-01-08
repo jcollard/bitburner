@@ -22,7 +22,7 @@ export default class Util {
 	 */
 	find_path(target) {
 		if (!this.find_all_servers(this.ns).includes(target)) throw new Error("Illegel target server: " + target);
-		return this._find_path(this.ns, target, "home", [], []);
+		return this._find_path(target, "home", [], []);
 	}
 
 	// Helper function for recursively finding the path
@@ -166,12 +166,32 @@ export default class Util {
 	  }
 
 	  /**
-	   * Given a number, convert it to a millions format
+	   * Given a number, converts it to the best 7 character length
 	   * @param {number} num 
-	   * @returns string in the millions format
+	   * @returns A string that is 7 characters in length
 	   */
-	  toMillions(num) {
-		  return (Math.ceil(num / 10000) / 100) + "m"; 
+	  formatNum(num) {
+		if (num < 1_000) {
+			return ("" + num).padStart(7, " ");
+		}
+		if (num < 1_000_000) {
+			return this.toThousands(num);
+		}
+		if (num < 1_000_000_000) {
+			return this.toMillions(num);
+		}
+		if (num < 1_000_000_000_000) {
+		return this.toBillions(num);
+		}
+		return this.toTrillions(num);
+	  }
+
+	  toThousands = (num) => this.__to_num(num, 1_000, "k");
+	  toMillions = (num) => this.__to_num(num, 1_000_000, "m");
+	  toBillions = (num) => this.__to_num(num, 1_000_000_000, "b");
+	  toTrillions = (num) => this.__to_num(num, 1_000_000_000_000, "t");
+	  __to_num(num, digits, ch) {
+		  return ((Math.ceil(num / (digits/100)) / 100) + ch).padStart(7, " ");
 	  }
 
 }
