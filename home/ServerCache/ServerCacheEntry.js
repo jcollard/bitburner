@@ -47,6 +47,7 @@ export default class ServerCacheEntry {
     }
 
     calc_threads(max_ram) {
+        if (!this.is_prepped()) return undefined;
         let max_threads = max_ram / this.hacks.HACK_RAM();
         let thread_data = {};
         thread_data.hack_threads = 1;
@@ -70,10 +71,12 @@ export default class ServerCacheEntry {
             thread_data.grow_threads = Math.ceil(this.ns.growthAnalyze(this.host_name, counter_growth));
             thread_data.counter_grow_threads = Math.ceil(this.ns.growthAnalyzeSecurity(thread_data.grow_threads));
             thread_data.total_threads = thread_data.hack_threads + thread_data.counter_hack_threads + thread_data.grow_threads + thread_data.counter_grow_threads;
+            thread_data.amount = hack_amount;
             thread_data.hack_threads++;
         }
         debug("   Thread Total: " + thread_data.total_threads);
         if (thread_data.total_threads === -1) return undefined;
+        thread_data.ratio = thread_data.amount * this.ns.hackAnalyzeChance(this.host_name);
         return thread_data;
     }
 
