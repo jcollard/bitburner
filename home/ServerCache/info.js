@@ -13,24 +13,23 @@ export async function main(ns) {
     let cache = new ServerCache(ns);
 
     report("+---------------------------+");
-    report("| ServerCache/prep.js       |");
+    report("| ServerCache/info.js       |");
     report("+---------------------------+");
 
-    if (ns.args.length == 0) util.error("Expected first argument to be a server name.");
+    if (ns.args.length == 0) util.Error("ERROR: Expected first argument to be a server name.");
     let target = cache.getServer(ns.args[0]);
     ns.tprintf("Target: %s", target.host_name);
     ns.tprintf("  Is Prepped: %s", target.is_prepped());
-    while (!target.is_prepped()) {
-        ns.tprintf("Prepping %s for batch.", target.host_name);
-        if(!await target.prep_for_batch()) {
-            ns.tprintf("WARNING: There wasn't enough memory to prep in one try. This may take awhile.");
-        }
-        let time = util.formatNum(target.prep_until - Date.now());
-        ns.tprintf("Prep started. Waiting %s ms", time);
-        await ns.sleep(target.prep_until - Date.now());
+    if (!target.is_prepped()) {
+        ns.tprintf("  Target must be prepped for additional information.");
+        ns.exit();
     }
     
-    ns.tprintf("%s is prepped!", target.host_name);
+    let batch_info = target.calc_threads(hacks.get_max_RAM(...hacks.GetRunnables()));
+    ns.tprintf("Batch Info: %s", batch_info);
+    // ns.tprintf("%s needs %s threads to batch $%s raw and %s ratio.", target.host_name, batch_info.total_threads, util.toMillions(batch_info.amount), util.toMillions(batch_info.ratio));
+
+    // await ns.alert("Test");
 }
 
 function report(str, ...values) {

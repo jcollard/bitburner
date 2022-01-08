@@ -91,12 +91,11 @@ export default class ServerCacheEntry {
         // Get the server to the minimum security and maximum money.
         // Once a server is ready, it can be batched
         let weaken_threads = this.hacks.calc_weaken_threads_needed(this.host_name);
-        debug("   Weaken Threads Needed: %s", weaken_threads);
-        if (weaken_threads > 0) {
+        if (weaken_threads > 0) {          
             this.prep_until = Date.now() + 100 + this.ns.getWeakenTime(this.host_name);
             let remaining_threads = await this.run_weaken(weaken_threads);
             let started = weaken_threads - remaining_threads;
-            debug("   Started %s Weaken Threads.", this.host_name, started);
+            debug("   Started %s Weaken Threads.", started);
             if (remaining_threads > 0) {
                 this.ns.toast("Out of Memory", "warning");
                 return false;
@@ -106,17 +105,18 @@ export default class ServerCacheEntry {
 
         let grow_threads = this.hacks.calc_grow_threads_needed(this.host_name);
         if (grow_threads > 0) {
+            debug("   Need %s grow threads.", grow_threads);
             this.prep_until = Date.now() + 100 + this.ns.getGrowTime(this.host_name);
             let remaining_threads = await this.run_grow(grow_threads);
             let started = grow_threads - remaining_threads;
-            debug("   Started %s threads.", this.host_name, started);
+            debug("   Started %s grow threads.", started);
             if (remaining_threads > 0) {
                 this.ns.toast("Out of Memory", "warning");
                 return false;
             }
             return true;
         }
-
+        debug ("   Prep is finished!");
         return true;
     }
 

@@ -46,7 +46,7 @@ export default class ServerCache {
      */
     find_available_server(threads, ram_per_thread) {
         for (let server of this.hacks.GetRunnables()) {
-            let max_threads = this.hacks.get_available_RAM(server) / ram_per_thread;
+            let max_threads = Math.floor(this.hacks.get_available_RAM(server) / ram_per_thread);
             if (max_threads == 0) continue;
             // If this server has some space to run 
             return new ServerInfo(server, Math.min(threads, max_threads));
