@@ -10,14 +10,18 @@ export async function main(ns) {
     NS = ns;
     let hacks = new HackUtil(ns);
     let util = new Util(ns);
-    let cache = new ServerCache(ns);
 
     report("+---------------------------+");
     report("| ServerCache/prep.js       |");
     report("+---------------------------+");
 
     if (ns.args.length == 0) util.error("Expected first argument to be a server name.");
+    let money_cap = ns.args[1];
+    let cache = new ServerCache(ns, money_cap);
     let target = cache.getServer(ns.args[0]);
+    
+    
+
     ns.tprintf("Target: %s", target.host_name);
     ns.tprintf("  Is Prepped: %s", target.is_prepped());
     while (!target.is_prepped()) {

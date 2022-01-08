@@ -5,6 +5,7 @@ export default class Util {
 
 	purchased_prefix = "purchased_server";
 	meta_data_file = "/meta/data.txt";
+	back_door_file = "/meta/backdoors.json";
 
 	/**
 	 * Constructs a Util class on the given NS interface
@@ -20,9 +21,12 @@ export default class Util {
 	 * @param {string} target Target Server Name
 	 * @returns A string that is a command that will bring you to the specified server.
 	 */
-	find_path(target) {
-		if (!this.find_all_servers(this.ns).includes(target)) throw new Error("Illegel target server: " + target);
-		return this._find_path(target, "home", [], []);
+	find_path(target, start) {
+		let all_servers = this.find_all_servers(this.ns);
+		all_servers.push("home");
+		if (!all_servers.includes(target)) this.error("Illegel target server: " + target);
+		if (start === undefined) start = "home";
+		return this._find_path(target, start, [], []);
 	}
 
 	// Helper function for recursively finding the path
@@ -34,8 +38,7 @@ export default class Util {
 			current_path.shift();
 			current_path.push(current);
 			current_path.push(target);
-			let code = "home; connect " + current_path.join("; connect ");
-			return code;
+			return current_path;
 		}
 	
 		// Otherwise, we get a list of servers to visit
@@ -125,12 +128,30 @@ export default class Util {
 		return this.find_all_root().filter(s => (this.ns.getServerRequiredHackingLevel(s) <= this.ns.getHackingLevel()));
 	}
 
+	async get_backdoors() {
+		if (!this.ns.fileExists(this.back_door_file)) await this.init_backdoors();
+		let data = this.ns.read(this.back_door_file).toString();
+		return JSON.parse(data);
+	}
+
+	async add_backdoor(server) {
+		let data = await this.get_backdoors();
+		data.backdoor.push(server);
+		let output = JSON.stringify(data);
+		await this.ns.write(this.back_door_file, output, "w");
+	}
+
+	async init_backdoors() {
+		let init_data = { backdoor: [] };
+		await this.ns.write(this.back_door_file, JSON.stringify(init_data), "w");
+	}
+
 	/**
 	 * 
 	 * @returns Loads and returns the meta_data JSON
 	 */
 	async load_metadata() {
-		let data = (await this.ns.read(this.meta_data_file)).toString();
+		let data = (this.ns.read(this.meta_data_file)).toString();
 		return JSON.parse(data);
 	}
 

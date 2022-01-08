@@ -60,7 +60,7 @@ export default class HackUtil {
         let ram = (s) => { 
             let available = this.ns.getServerMaxRam(s) - this.ns.getServerUsedRam(s);
             if (available < this.HACK_RAM()) return 0;
-            return available
+            return available;
         }
         return servers.map(ram).reduce(sum);
     }

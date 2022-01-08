@@ -11,7 +11,7 @@ function debug(str, ...args) {
 
 export default class ServerCacheEntry {
 
-    constructor(ns, cache, host_name) {
+    constructor(ns, cache, host_name, money_cap) {
         NS = ns;
         this.ns = ns;
         this.hacks = new HackUtil(ns);
@@ -19,10 +19,13 @@ export default class ServerCacheEntry {
         this.host_name = host_name;
         this.cache = cache;
         this.prep_until = 0;
+        this.money_cap = money_cap ? money_cap : Number.POSITIVE_INFINITY;
     }
 
     is_prepped() {
-        if (this.ns.getServerMoneyAvailable(this.host_name) < this.ns.getServerMaxMoney(this.host_name)) return false;
+        let money = this.ns.getServerMoneyAvailable(this.host_name);
+        let max = Math.min(this.money_cap, this.ns.getServerMaxMoney(this.host_name));
+        if (money < max) return false;
         if (this.ns.getServerSecurityLevel(this.host_name) > this.ns.getServerMinSecurityLevel(this.host_name)) return false;
         return true;
     }

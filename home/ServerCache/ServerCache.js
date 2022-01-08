@@ -15,7 +15,7 @@ function debug(str, ...args) {
 
 export default class ServerCache {
 
-    constructor(ns) {
+    constructor(ns, money_cap) {
         NS = ns;
         this.ns = ns;
         this.cache = {};
@@ -23,6 +23,7 @@ export default class ServerCache {
         this.util = new Util(ns);
         this.next_action = 0;
         this.MIN_SLEEP_TIME = 5000;
+        this.money_cap = money_cap ? money_cap : Number.POSITIVE_INFINITY;
     }
 
     setNextAction(time) {
@@ -30,9 +31,20 @@ export default class ServerCache {
         this.next_action = time;
     }
 
+    /**
+     * Set the money cap for all servers in this cache
+     * @param {number} money_cap 
+     */
+    setMoneyCap(money_cap) {
+        this.money_cap = money_cap;
+        for(let key of Object.keys(this.cache)){
+            this.cache[key].money_cap = money_cap;
+        }
+    }
+
     getServer(server) {
         if (!(server in this.cache)) {
-            let entry = new ServerCacheEntry(this.ns, this, server);
+            let entry = new ServerCacheEntry(this.ns, this, server, this.money_cap);
             this.cache[server] = entry;
         }
         return this.cache[server];
