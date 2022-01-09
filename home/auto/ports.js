@@ -19,6 +19,11 @@ export async function main(ns) {
 	};
 
 	while (true) {
+
+		if (!ns.getPlayer().tor && ns.getPlayer().money > 200_000) {
+			ns.tprintf("Purchasing TOR");
+			ns.purchaseTor();
+		}
 		// ns.prompt("Count: " + check_ports());
 		if (check_ports()) {
 			ns.toast("All port openers available. Exiting auto-buy-ports.");
