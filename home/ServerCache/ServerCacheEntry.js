@@ -204,6 +204,18 @@ export default class ServerCacheEntry {
 
             const start_grow = (delay) => this.grow(worker_info, delay);
             const counter_grow_threads = this.calc_counter_growth_threads(worker_info.threads);
+
+            // Counter threads are more important, if I don't have enough total threads, remove grow_threads
+            const available_threads = this.hacks.get_available_threads(...this.hacks.GetRunnables());
+            if (worker_info.threads + counter_grow_threads > available_threads) {
+                const diff = (worker_info.threads + counter_grow_threads) - available_threads;
+                worker_info.threads -= diff;
+                if (worker_info.threads <= 0) {
+                    info("... Out of RAM, could not finish");
+                    return final_return();
+                }
+            }
+
             info("... This will require %s counter threads.", counter_grow_threads);
             const start_weaken = (delay) => this.run_weaken(counter_grow_threads, delay);
 

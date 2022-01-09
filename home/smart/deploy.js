@@ -94,7 +94,7 @@ async function weaken_hackables(ns, hackables, workers, next_weaken_at) {
 	let sVal = (s) => (ns.getServerSecurityLevel(s) - ns.getServerMinSecurityLevel(s)) * ns.getWeakenTime;
 	let cmp = (s0, s1) => sVal(s0) - sVal(s1);
 	let weakestFirst = hackables.sort(cmp);
-	weakestFirst.filter(s => ns.getServerSecurityLevel(s) > ns.getServerMinSecurityLevel(s));
+	weakestFirst = weakestFirst.filter(s => ns.getServerSecurityLevel(s) > ns.getServerMinSecurityLevel(s));
 	ns.tprintf("Try to weaken %s", weakestFirst.join(", "));
 	for (let target of weakestFirst) {
 		if (hacks.get_available_RAM(...hacks.GetRunnables()) < hacks.WEAKEN_RAM()) return count;
@@ -110,28 +110,35 @@ async function weaken_hackables(ns, hackables, workers, next_weaken_at) {
 }
 
 async function grow_hackables(ns, hackables, workers, next_grow_at) {
-	// Sort such that servers that grow the fastest will grow
-	// finished first
+	// Sort such that servers that require the fewest threads to grow come first (we can hack them sooner!)
 	let count = 0;
 	// TODO: Consider a different order?
-	let sVal = (s) => ns.getGrowTime(s);
+	let sVal = (s) => cache.getServer(s).calc_grow_threads();
 	let cmp = (s0, s1) => sVal(s0) - sVal(s1);
 	let closestFirst = hackables.sort(cmp); // .reverse();
+
 	closestFirst = closestFirst.filter(s => ns.getServerSecurityLevel(s) == ns.getServerMinSecurityLevel(s))
 				.filter(s => ns.getServerMoneyAvailable(s) < ns.getServerMaxMoney(s))
 				.filter(s => ns.getServerMaxMoney(s) > 0);
+		
 	ns.tprintf("Considering grow on %s", closestFirst.join(", "));
 	for (let target of closestFirst) {
 		if (hacks.get_available_RAM(...hacks.GetRunnables()) < hacks.GROW_RAM()) return count;
 		let currTime = Date.now();
-		if (next_grow_at[target] > currTime) {
+		let grow_threads = hacks.get_grow_threads(target);
+		let needed_grow_threads = hacks.calc_grow_threads_needed(target);
+		if (grow_threads >= needed_grow_threads && next_grow_at[target] > currTime) {
 			ns.tprintf("... Skipping %s for: %s", target, util.formatTime(next_grow_at[target] - Date.now()));
 			continue;
 		}
 		let entry = cache.getServer(target);
 		let info = await entry.smart_grow();
+		if (info.grow_threads === 0) {
+			ns.tprintf("... Did not start any grow threads. Likely not enough network RAM.");
+			continue;
+		}
 		let args = [util.formatNum(info.grow_threads), info.workers, util.formatNum(info.weaken_threads), util.formatTime(info.time), entry.host_name]; //.map(num => util.formatNum(num));
-    	ns.tprintf("Started %s grow threads on %s workers and %s weaken threads. They will finish in %s. - %s", ...args);
+    	ns.tprintf("... Started %s grow threads on %s workers and %s weaken threads. They will finish in %s. - %s", ...args);
 		next_grow_at[target] = Date.now() + info.time;
 
 	}
