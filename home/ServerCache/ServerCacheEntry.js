@@ -23,6 +23,7 @@ export default class ServerCacheEntry {
         this.grow_until = -1;
         this.weaken_until = -1;
         this.money_cap = money_cap ? money_cap : Number.POSITIVE_INFINITY;
+        this.last_grow = 0;
     }
 
     is_prepped() {
@@ -55,12 +56,20 @@ export default class ServerCacheEntry {
     hack_chance = () => this.ns.hackAnalyzeChance(this.host_name);
     get_money_for_hack = (threads) => threads * this.max_money() * this.ns.hackAnalyze(this.host_name);
 
-    can_hack = (percent) => this.get_needed_weaken_threads() === 0 && this.available_money() > (this.max_money()* (1 - percent));
+    can_hack = () => this.get_needed_weaken_threads() === 0 && this.is_max_grow();
     can_grow = () => this.get_needed_weaken_threads() === 0 && !this.is_max_grow();
 
     is_max_grow = () => this.needed_grow_threads() <= this.running_grow_threads();
 
-    needed_grow_threads = () => this.hacks.calc_grow_threads_needed(this.host_name);
+    needed_grow_threads() {
+        // If there are no hack threads running, we can easily calculate this
+        if (this.running_hack_threads() === 0) return this.hacks.calc_grow_threads_needed(this.host_name) - this.running_grow_threads();
+        return this.hacks.calc_grow_threads_needed(this.host_name) - this.running_grow_threads();
+
+        // Otherwise, we must estimate it based on ???
+
+
+    }
 
     /**
      * @returns An estimated amount of money that should be available after all hack threads finish
@@ -85,7 +94,7 @@ export default class ServerCacheEntry {
     min_security_level = () => this.ns.getServerMinSecurityLevel(this.host_name);
     raw_security_level = () => this.ns.getServerSecurityLevel(this.host_name);
 
-    get_needed_weaken_threads = () => this.hacks.calc_weaken_threads_needed(this.host_name) - this.running_weaken_threads();
+    get_needed_weaken_threads = () => Math.max(0, this.hacks.calc_weaken_threads_needed(this.host_name) - this.running_weaken_threads());
 
     /**
      * @returns The relative security level based on the number of threads running.

@@ -37,6 +37,8 @@ export default class UpgradePortsPhase {
         this.min_hack_percent = 0.1;
         this.max_hack_percent = 0.9;
         this.increments = 0;
+        this.ticks_above = 0;
+        this.ticks_below = 0;
     }
 
     async tick() {
@@ -65,23 +67,63 @@ export default class UpgradePortsPhase {
             if (available_threads < 5) break;
 
             // If the server is not at minimum security, start weakening
-            if (!target.is_min_security()) {
+            if (target.get_needed_weaken_threads() > 0) {
                 info("... ... Security: %s / %s", target.security_level(), target.min_security_level());
                 await this.weaken(target);
             }else if (target.can_grow()) {
+                info("... ... Grow Target: ")
                 await this.grow(target);
-            } else {
+            } else if (target.can_hack(this.hack_percent)){
+                info("... ... Hack Target: ")
                 // Always try to hack if possible
                 await this.hack(target);
                 // this.ns.tprintf("UpgradePortsPhase > Something went wrong with %s. Did not weaken, hack, or grow.", target.host_name);
+            } else {
+                info("... ... Nothing to do.");
+                this.ns.tprintf("Skip   > %s", target.host_name);
+                this.ns.tprintf("... Can Hack: %s", target.can_grow(this.hack_percent));
+                //this.get_needed_weaken_threads() === 0 && this.is_max_grow();
+                this.ns.tprintf("... Needed Weaken Threads: %s", target.get_needed_weaken_threads());
+                this.ns.tprintf("... Is Max Grow?: %s", target.is_max_grow());
+                // is_max_grow = () => this.needed_grow_threads() <= this.running_grow_threads();
+                this.ns.tprintf("... Needed Grow Threads: %s", target.needed_grow_threads());
+                this.ns.tprintf("... Running Grow Threads: %s", target.running_grow_threads());
             }
         }
 
         const left_over_threads = this.hacks.get_available_threads(...workers);
         info("... Unused Threads: %s", left_over_threads);
 
+        let adjust_percent = false;
         if (left_over_threads > 100) {
+            this.ticks_above++;
+            this.ticks_below = 0;
+            if (this.ticks_above > 10) {
+                if (!(this.hack_percent >= this.max_hack_percent)) {
+                    
+                    this.increments++;
+                    this.hack_percent = this.min_hack_percent + (0.025 * this.increments);
+                    this.hack_percent = Math.min(this.hack_percent, this.max_hack_percent);
+                    this.ticks_above = 0;
+                    this.ns.tprintf("UpgradePortPhase > Increasing Hack %% to %s", Math.floor(this.hack_percent * 10_000)/100)
+                }
+            }
+        } else {
+            this.ticks_above = 0;
+            this.tick_below++;
+            if (this.ticks_below > 10) {
+                if (!(this.hack_percent <= this.min_hack_percent)) {
+                    
+                    this.increments--;
+                    this.increments = Math.max(0, this.increments);
+                    this.hack_percent = this.min_hack_percent + (0.025 * this.increments);
+                    this.hack_percent = Math.min(this.hack_percent, this.max_hack_percent);
+                    this.ticks_above = 0;
+                    this.ns.tprintf("UpgradePortPhase > Decreasing Hack %% to %s", Math.floor(this.hack_percent * 10_000)/100)
+                }
+            }
         }
+
 
     }
 
