@@ -19,6 +19,9 @@ export default class ServerCacheEntry {
         this.host_name = host_name;
         this.cache = cache;
         this.prep_until = 0;
+        this.hack_until = -1;
+        this.grow_until = -1;
+        this.weaken_until = -1;
         this.money_cap = money_cap ? money_cap : Number.POSITIVE_INFINITY;
     }
 
@@ -139,27 +142,30 @@ export default class ServerCacheEntry {
      * @param {number} threads - The number of threads to start
      * @returns The number of threads that are needed to finish weakening the target. 0 if it will be completely weakened after the run
      */
-    run_weaken = (threads) => this.__run_f(this.weaken, this.hacks.WEAKEN_RAM(), threads);
+    run_weaken = (threads) => this.__run_f(this.weaken, this.hacks.WEAKEN_RAM(), threads, () => this.weaken_until = Date.now() + this.ns.getWeakenTime(this.host_name));
 
     /**
      * @param {number} threads - The number of threads to start
      * @returns The number of threads that are needed to finish the target. 0 if it will be completely weakened after the run
      */
-    run_grow = (threads) => this.__run_f(this.grow, this.hacks.GROW_RAM(), threads);
+    run_grow = (threads) => this.__run_f(this.grow, this.hacks.GROW_RAM(), threads, () => this.grow_until = Date.now() + this.ns.getGrowTime(this.host_name));
 
     /**
      * @param {number} threads - The number of threads to start
      * @returns The number of threads that are needed to finish the target. 0 if it will be completely weakened after the run
      */
-    run_hack = (threads) => this.__run_f(this.hack, this.hacks.HACK_RAM(), threads);
+    run_hack = (threads) => this.__run_f(this.hack, this.hacks.HACK_RAM(), threads, () => this.hack_until = Date.now() + this.ns.getHackTime(this.host_name));
 
-    async __run_f(f, ram_per_thread, threads) {
+    async __run_f(f, ram_per_thread, threads, finished_at) {
         let threads_needed = threads;
         while (threads_needed > 0) {
             let server_info = this.cache.find_available_server(threads_needed, ram_per_thread);
             if (server_info === undefined) break;
             threads_needed -= server_info.threads;
             await f(server_info)
+        }
+        if (threads_needed !== threads) {
+            finished_at();
         }
         return threads_needed;
     }

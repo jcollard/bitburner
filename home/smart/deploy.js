@@ -42,6 +42,7 @@ export async function main(ns) {
 		max_grow_money = Math.max(100_000, (ns.getPlayer().money/8));
 		hackables = utils.find_all_hackable(ns).filter((s) => s !== "n00dles");
 		workers = sort_workers(ns, utils.find_all_runnable(ns));
+		let reverse_workers = workers.filter(s => true).reverse();
 
 		notifications = "";
 		if (hacks.get_available_RAM(...hacks.GetRunnables()) > 2)
@@ -52,7 +53,7 @@ export async function main(ns) {
 
 		// Try to weaken
 		if (hacks.get_available_RAM(...hacks.GetRunnables()) > 2)
-			await weaken_hackables(ns, hackables, workers, next_weaken_at);
+			await weaken_hackables(ns, hackables, reverse_workers, next_weaken_at);
 
 		await ns.sleep(1000 * 10);
 	}

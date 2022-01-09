@@ -26,7 +26,15 @@ export async function main(ns) {
     ns.tprintf("%s", target);
     freport("RAM:", fMinMax(ram, max_ram));
     freport("Money:", fMinMax(money, max_money));
+    freport("Hack 10%:", util.formatNum(hacks.calc_hack_threads(target, .1)));
+    freport("Hack 25%:", util.formatNum(hacks.calc_hack_threads(target, .25)));
+    freport("Hack 50%:", util.formatNum(hacks.calc_hack_threads(target, .50)));
+    freport("Hack 90%:", util.formatNum(hacks.calc_hack_threads(target, .90)));
+    freport("Growth Factor:", util.formatNum(ns.getServerGrowth(target)));
+    freport("Growth % Needed: ", util.formatNum(hacks.calc_max_growth(target)));
+    freport("Grow Threads Needed: ", util.formatNum(hacks.calc_grow_threads_needed(target)));
     freport("Security:", fMinMax(security, min_security));
+    freport("Weaken Threads Needed: ", util.formatNum(hacks.calc_weaken_threads_needed(target)));
     freport("Active Weaken Threads:", util.formatNum(hacks.get_weaken_threads(target)));
     freport("Active Grow Threads:", util.formatNum(hacks.get_grow_threads(target)));
     freport("Active Hack Threads:", util.formatNum(hacks.get_hack_threads(target)));

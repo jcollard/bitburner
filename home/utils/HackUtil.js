@@ -7,7 +7,7 @@ const GROW_SCRIPT = "/simple/grow.js"; // 1.75 GB
 let NS = undefined;
 let DEBUG = true;
 
-function debug(str, ...args) {
+function _debug(str, ...args) {
     if (!DEBUG) return;
     NS.tprintf(str, ...args);
 }
@@ -138,11 +138,17 @@ export default class HackUtil {
      * @param {string} server 
      */
     calc_grow_threads_needed(server) {
+        let debug = (str, ...args) => undefined;
+        // let debug = (str, ...args) => _debug(str, ...args);
+        debug("HackUtil.calc_grow_threads_needed(%s)", server);
         let growthPercent = this.calc_max_growth(server);
+        debug("... growthPercent: %s", growthPercent);
         if (growthPercent === undefined) return 0;
         // TODO: Need to choose a reasonable number here rather than just 1000
         if (growthPercent === -1) return 1000;
-        return Math.ceil(this.ns.growthAnalyze(server, growthPercent));
+        let threads = Math.ceil(this.ns.growthAnalyze(server, growthPercent));
+        debug("... threads: %s", threads);
+        return threads;
     }
 
     /**
@@ -155,6 +161,11 @@ export default class HackUtil {
         if (this.ns.getServerMaxMoney(server) == 0) return undefined;
         if (this.ns.getServerMoneyAvailable(server) == 0) return -1;
         return this.ns.getServerMaxMoney(server) / this.ns.getServerMoneyAvailable(server);
+    }
+
+    calc_hack_threads(server, percent) {
+        let target_amount = this.ns.getServerMoneyAvailable(server) * percent;
+        return this.ns.hackAnalyzeThreads(server, target_amount);
     }
 
 }
