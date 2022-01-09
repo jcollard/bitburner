@@ -37,10 +37,10 @@ export async function main(ns) {
 	let next_grow_at = {};
 	let next_hack_at = {};
 
-	ns.tprintf("WARNING STILL IGNORING n00dles!");
+	// ns.tprintf("WARNING STILL IGNORING n00dles!");
 	while (true) {
 		max_grow_money = Math.max(100_000, (ns.getPlayer().money/8));
-		hackables = utils.find_all_hackable(ns).filter((s) => s !== "n00dles");
+		hackables = utils.find_all_hackable(ns); //.filter((s) => s !== "n00dles");
 		workers = sort_workers(ns, utils.find_all_runnable(ns));
 		let reverse_workers = workers.filter(s => true).reverse();
 

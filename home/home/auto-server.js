@@ -33,6 +33,6 @@ export async function main(ns) {
 function calc_next_ram(ns, hacks) {
 	let network_ram = hacks.get_max_RAM(...hacks.GetRunnables());
 	let target_RAM = 2;
-	while (target_RAM < network_ram/8) target_RAM <<= 1;
+	while (target_RAM < network_ram/4) target_RAM <<= 1;
 	return Math.min(target_RAM, ns.getPurchasedServerMaxRam());
 }
