@@ -52,13 +52,13 @@ export async function main(ns) {
 
 		notifications = "";
 		// Try to weaken
-		if (hacks.get_available_RAM(...hacks.GetRunnables()) > 2)
+		if (hacks.get_available_RAM(...hacks.GetRunnables()) > 50)
 			await weaken_hackables(ns, hackables, reverse_workers, next_weaken_at);
 		// Try hack
-		if (hacks.get_available_RAM(...hacks.GetRunnables()) > 2)
+		if (hacks.get_available_RAM(...hacks.GetRunnables()) > 50)
 			await hack_hackables(ns, hackables, workers, next_hack_at);
 		// Try to grow (only grow if 100% weakend)
-		if (hacks.get_available_RAM(...hacks.GetRunnables()) > 2)
+		if (hacks.get_available_RAM(...hacks.GetRunnables()) > 50)
 			await grow_hackables(ns, hackables, workers, next_grow_at);
 
 		if (hacks.get_available_threads(...workers) > 100 && hack_percent < max_percent) {
@@ -129,17 +129,17 @@ async function weaken_hackables(ns, hackables, workers, next_weaken_at) {
 }
 
 async function grow_hackables(ns, hackables, workers, next_grow_at) {
-	// Sort such that servers that require the fewest threads to grow come first (we can hack them sooner!)
+	
 	let count = 0;
-	// Favor servers that have a faster weaken time since this is the bottle neck on threads
-	let sVal = (s) => ns.getWeakenTime(s);
+	// Favor servers with the best growth %
+	let sVal = (server) => ns.getServerGrowth(server); 
 	let cmp = (s0, s1) => sVal(s0) - sVal(s1);
 	let closestFirst = hackables
 		// Only grow servers that are close to minimum security
 		.filter(s => (ns.getServerSecurityLevel(s) - ns.getServerMinSecurityLevel(s)) < 2)
 		// Only grow servers that need grow threads
 		.filter(s => cache.getServer(s).calc_grow_threads() > 0)
-		.sort(cmp); // .reverse();
+		.sort(cmp).reverse();
 		
 	ns.tprintf("Considering grow on %s", closestFirst.join(", "));
 	for (let target of closestFirst) {

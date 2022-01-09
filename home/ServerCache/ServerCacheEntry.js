@@ -299,6 +299,7 @@ export default class ServerCacheEntry {
                 workers: 0
             }
         }
+        
         let hack_threads_needed = target_hack_threads;
         let hack_threads_started = 0;
         let weaken_threads_started = 0;
@@ -426,6 +427,14 @@ export default class ServerCacheEntry {
         info("ServerCacheEntry(%s).scp_and_exec(%s, %s)", this.host_name, script, server_info.server);
         if (delay === undefined) delay = 0;
         await this.ns.scp(script, "home", server_info.server);
+
+        if (this.ns.getRunningScript(script, server_info.server, this.host_name, delay)) {
+            let ix = 0;
+            // Find a valid argument combination to start the script
+            while (this.ns.getRunningScript(script, server_info.server, this.host_name, delay, ++ix));
+            await this.ns.exec(script, server_info.server, server_info.threads, this.host_name, delay, ix);
+            return;
+        }
         await this.ns.exec(script, server_info.server, server_info.threads, this.host_name, delay);
     }
 
