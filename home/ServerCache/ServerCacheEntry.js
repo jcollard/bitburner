@@ -97,7 +97,7 @@ export default class ServerCacheEntry {
         // Get the server to the minimum security and maximum money.
         // Once a server is ready, it can be batched
         let weaken_threads = this.hacks.calc_weaken_threads_needed(this.host_name);
-        if (weaken_threads > 0) {          
+        if (weaken_threads > 0) {
             this.prep_until = Date.now() + 100 + this.ns.getWeakenTime(this.host_name);
             let remaining_threads = await this.run_weaken(weaken_threads);
             let started = weaken_threads - remaining_threads;
@@ -122,19 +122,131 @@ export default class ServerCacheEntry {
             }
             return true;
         }
-        debug ("   Prep is finished!");
+        debug("   Prep is finished!");
         return true;
     }
 
-    weaken = (server_info) => this.scp_and_exec(HackUtil.WEAKEN_SCRIPT, server_info);
-    hack = (server_info) => this.scp_and_exec(HackUtil.HACK_SCRIPT, server_info);
-    grow = (server_info) => this.scp_and_exec(HackUtil.GROW_SCRIPT, server_info);
+    /**
+     * Attempts to grow this server to the max value in an intelligent way.
+     * @returns const data = {
+                time: expected_finish, // Millis for all threads to finish
+                grow_threads: grow_threads_started, // # Of Grow Threads Started
+                weaken_threads: weaken_threads_started // # Of Weaken Threads Started
+            }
+     */
+    async smart_grow() {
+        // let info = (str, ...args) => undefined;
+        const info = (str, ...args) => debug(str, ...args);
+        info("ServerCacheEntry(%s).smart_grow()", this.host_name);
 
-    async scp_and_exec(script, server_info) {
-        await this.ns.scp(script, "home", this.host_name);
-        await this.ns.exec(script, server_info.server, server_info.threads, this.host_name);
+        // 1. Discover the number of threads needed to grow.
+        // 2. Using the server with the most available RAM, start the
+        //    maximum number of grow threads possible.
+        // 3. For the threads started, discover the counter number of
+        //    weaken threads to counter that grow.
+        // 4. Using the servers with the **least** available RAM, start
+        //    the counter threads across those servers
+        // 5. If there are more grow threads necessary, wait some delta time
+        //    then go to step 2
+
+        // The amount of buffer time to give between executions
+        const delta = 100;
+        // Total amount of delay time among all threads
+        let total_delay = 0;
+        // Total number of grow threads needed
+        const target_grow_threads = this.calc_grow_threads();
+        let grow_threads_needed = target_grow_threads;
+        let grow_threads_started = 0;
+        let weaken_threads_started = 0;
+
+        const final_return = () => {
+            const expected_finish = Math.max(this.get_grow_time(), this.get_weaken_time()) + total_delay;
+            this.grow_until = Date.now() + expected_finish;
+            const data = {
+                time: expected_finish,
+                grow_threads: grow_threads_started,
+                weaken_threads: weaken_threads_started
+            }
+            return data;
+        };
+
+        while (grow_threads_needed > 0) {
+            info("... %s growth threads needed.");
+            // worker_info.server --- host
+            // worker_info.threads --- available # of threads
+            const worker_info = this.cache.find_available_server(grow_threads_needed, this.hacks.GROW_RAM());
+            if (worker_info === undefined) {
+                // Out of RAM, abandon
+                info("... Out of RAM, could not finish")
+                return final_return();
+            }
+            info("... Found worker %s with %s threads.", worker_info.server, worker_info.threads);
+            grow_threads_needed -= worker_info.threads;
+
+            const start_grow = (delay) => this.grow(worker_info);
+            const counter_grow_threads = this.calc_counter_growth_threads(server_info.threads);
+            info("... This will require %s counter threads.", counter_grow_threads);
+            const start_weaken = (delay) => this.run_weaken(counter_grow_threads);
+
+            let remaining_weaken_threads = -1;
+            // If weaken will finish first, start weaken first
+            const weaken_time = this.get_weaken_time();
+            const grow_time = this.get_grow_time();
+            info("... Weaken Time: %s millis | Grow Time: %s millis", this.util.formatNum(weaken_time), this.util.formatNum(grow_time));
+
+            if (weaken_time < grow_time) {
+                // TODO: If this is the case, we need to recalculate the grow threads because
+                //       they may overlap with the weaken and we may be out of RAM.
+                const delay = (grow_time - weaken_time) + delta;
+                info("... Starting Grow Threads with Delay: %s", total_delay + delay);
+                start_grow(total_delay + delay);
+                grow_threads_started += worker_info.threads;
+                info("... Starting Counter Threads with Delay: %s", total_delay);
+                remaining_weaken_threads = start_weaken(total_delay);
+                weaken_threads_started += counter_grow_threads;
+                total_delay += delay;
+            } else { // grow_time < weaken_time
+                const delay = (weaken_time - grow_time) + delta;
+                info("... Starting Grow Threads with Delay: %s", total_delay);
+                start_grow(total_delay);
+                grow_threads_started += worker_info.threads;
+                info("... Starting Counter Threads with Delay: %s", total_delay + delay);
+                remaining_weaken_threads = start_weaken(total_delay + delay);
+                weaken_threads_started += counter_grow_threads;
+                total_delay += delay;
+            }
+
+            if (remaining_weaken_threads > 0) {
+                info("... Out of RAM, could not finish");
+                return final_return();
+            }
+
+            total_delay += delta;
+        }
+        const expected_finish = Math.max(this.get_grow_time(), this.get_weaken_time()) + total_delay;
+        info("... Grow started, expected finish in %s millis", expected_finish);
+        return final_return();
     }
 
+    calc_counter_growth_threads = (threads) => Math.ceil(this.ns.growthAnalyzeSecurity(threads));
+
+    calc_grow_threads = () => this.hacks.calc_grow_threads_needed(this.host_name);
+    calc_weaken_threads = () => this.hacks.calc_weaken_threads_needed(this.host_name);
+    calc_hack_threads = (percent) => this.hacks.calc_hack_threads(this.host_name, percent);
+
+    get_weaken_time = () => this.ns.getWeakenTime(this.host_name);
+    get_hack_time = () => this.ns.getHackTime(this.host_name);
+    get_grow_time = () => this.ns.getGrowTime(this.host_name);
+
+    weaken = (server_info, delay) => this.scp_and_exec(HackUtil.WEAKEN_SCRIPT, server_info, delay);
+    hack = (server_info, delay) => this.scp_and_exec(HackUtil.HACK_SCRIPT, server_info, delay);
+    grow = (server_info, delay) => this.scp_and_exec(HackUtil.GROW_SCRIPT, server_info, delay);
+
+    async scp_and_exec(script, server_info, delay) {
+        if (delay === undefined) delay = 0;
+        await this.ns.scp(script, "home", this.host_name);
+        await this.ns.exec(script, server_info.server, server_info.threads, this.host_name, delay);
+    }
 
     /**
      * Starts weakening the target. Returns the number of threads that are needed to finish weakening
@@ -142,27 +254,27 @@ export default class ServerCacheEntry {
      * @param {number} threads - The number of threads to start
      * @returns The number of threads that are needed to finish weakening the target. 0 if it will be completely weakened after the run
      */
-    run_weaken = (threads) => this.__run_f(this.weaken, this.hacks.WEAKEN_RAM(), threads, () => this.weaken_until = Date.now() + this.ns.getWeakenTime(this.host_name));
+    run_weaken = (threads, delay) => this.__run_f(this.weaken, this.hacks.WEAKEN_RAM(), threads, () => this.weaken_until = Date.now() + this.ns.getWeakenTime(this.host_name), delay, true);
 
     /**
      * @param {number} threads - The number of threads to start
      * @returns The number of threads that are needed to finish the target. 0 if it will be completely weakened after the run
      */
-    run_grow = (threads) => this.__run_f(this.grow, this.hacks.GROW_RAM(), threads, () => this.grow_until = Date.now() + this.ns.getGrowTime(this.host_name));
+    run_grow = (threads, delay) => this.__run_f(this.grow, this.hacks.GROW_RAM(), threads, () => this.grow_until = Date.now() + this.ns.getGrowTime(this.host_name), delay);
 
     /**
      * @param {number} threads - The number of threads to start
      * @returns The number of threads that are needed to finish the target. 0 if it will be completely weakened after the run
      */
-    run_hack = (threads) => this.__run_f(this.hack, this.hacks.HACK_RAM(), threads, () => this.hack_until = Date.now() + this.ns.getHackTime(this.host_name));
+    run_hack = (threads, delay) => this.__run_f(this.hack, this.hacks.HACK_RAM(), threads, () => this.hack_until = Date.now() + this.ns.getHackTime(this.host_name), delay);
 
-    async __run_f(f, ram_per_thread, threads, finished_at) {
+    async __run_f(f, ram_per_thread, threads, finished_at, delay, reverse) {
         let threads_needed = threads;
         while (threads_needed > 0) {
-            let server_info = this.cache.find_available_server(threads_needed, ram_per_thread);
+            let server_info = this.cache.find_available_server(threads_needed, ram_per_thread, reverse);
             if (server_info === undefined) break;
             threads_needed -= server_info.threads;
-            await f(server_info)
+            await f(server_info, delay)
         }
         if (threads_needed !== threads) {
             finished_at();
@@ -173,5 +285,5 @@ export default class ServerCacheEntry {
 }
 
 class ThreadData {
-    
+
 }

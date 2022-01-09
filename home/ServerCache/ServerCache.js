@@ -54,10 +54,13 @@ export default class ServerCache {
      * Find a server that has RAM available to run a script.
      * @param {number} threads - The number of threads needed.
      * @param {number} ram_per_thread - The amount of ram per thread
+     * @param {boolean} reverse - Optional flag to specify if the servers should be selected starting with the LEAST amount of RAM. By default, this selects servers that have the MOST RAM first.
      * @returns a ServerInfo object or undefined if no ram was available
      */
-    find_available_server(threads, ram_per_thread) {
-        for (let server of this.hacks.GetRunnables()) {
+    find_available_server(threads, ram_per_thread, reverse) {
+        let order = this.hacks.GetRunnables();
+        if (reverse === true) order = order.reverse();
+        for (let server of order) {
             let max_threads = Math.floor(this.hacks.get_available_RAM(server) / ram_per_thread);
             if (max_threads == 0) continue;
             // If this server has some space to run 
