@@ -12,21 +12,9 @@ function debug(str, ...args) {
     NS.tprintf(str, ...args);
 }
 
-// Phase 0, we acquire as port openers and open up as many free servers as possible.
-// This should get us about 2k GB of network RAM.
+export default class UpgradeNetworkPhase {
 
-// TOR -        $200_000
-// BruteSSH -   $1_500_000
-// FTPCrack.exe $5_000_000
-// HTTPWorm.exe $30_000_000
-// SQLInject    $250_000_000
-
-// Strategy:
-//   1. Limit weaken / grow / hack to a few servers with high growth rate based on Network Threads
-//   2. Focus on getting money to buy hacks
-export default class UpgradePortsPhase {
-
-    constructor(ns) {
+    constructor(ns, hack_percent) {
         this.ns = ns;
         NS = this.ns;
         // TODO: Seems to be an issue caching if you use getInstance.
@@ -35,7 +23,7 @@ export default class UpgradePortsPhase {
         this.cache = new ServerCache(ns); //.getInstance(ns);
         this.ports = new PortPrograms(ns); //.getInstance(ns);
         this.net = new Network(ns);
-        this.hack_percent = 0.1;
+        this.hack_percent = hack_percent ? hack_percent : 0.1;
         this.min_hack_percent = 0.1;
         this.max_hack_percent = 0.9;
         this.increments = 0;
@@ -48,13 +36,8 @@ export default class UpgradePortsPhase {
         // const info = (str, ...args) => debug(str, ...args);
         info("UpgradePortsPhase().tick()");
 
-        info("... Trying to purchase programs: %s", this.ports.needed_programs());
-        // Try to upgrade port programs
-        this.ports.purchase_all_programs();
-
-        // Try to open ports
-        info("... Trying to open ports.");
-        this.ports.open_ports();
+        // When money is available, grow the network
+        this.net.purchase_server(.5);
 
         info("... Trying to install backdoors.");
         await this.net.start_next_backdoor();
@@ -134,7 +117,7 @@ export default class UpgradePortsPhase {
 
     async weaken(target) {
         const info = await target.smart_weaken();
-        if (info.workers === 0) return;
+        if (info.weaken_threads === 0) return;
         let args = [ 
             this.util.formatNum(info.weaken_threads),
             this.util.formatTime(info.time),
@@ -187,15 +170,15 @@ export default class UpgradePortsPhase {
         return this.hacks.GetHackables()
             .filter(s => this.cache.getServer(s).max_money() > 0)
             .sort(cmp)
-            .slice(0, 3);
+            .slice(0, 10);
     }
 
 }
 
 /** @param {NS} ns **/
 export async function main(ns) {
-    let phase = new UpgradePortsPhase(ns);
-    ns.tprintf("Starting Phase 0");
+    let phase = new UpgradeNetworkPhase(ns);
+    ns.tprintf("Starting Phase 1");
     while(true) {
         await phase.tick();
         await ns.sleep(5000);

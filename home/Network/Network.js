@@ -1,4 +1,5 @@
 import Util from "/utils/Util.js";
+import HackUtil from "/utils/HackUtil.js";
 import Singularity from "/utils/Singularity.js";
 
 let NS = undefined;
@@ -14,7 +15,8 @@ export default class Network {
     constructor(ns) {
         this.ns = ns;
         NS = this.ns;
-        this.util =  new Util(ns); //Util.getInstance(ns);
+        this.util = new Util(ns); //Util.getInstance(ns);
+        this.hacks = new HackUtil(ns)
         this.singularity = new Singularity(ns);
     }
 
@@ -41,43 +43,31 @@ export default class Network {
     }
 
     async start_next_backdoor() {
-        if(this.ns.ps("home").filter(p => p.filename === "/Network/backdoor.js").length > 0) return;
+        if (this.ns.ps("home").filter(p => p.filename === "/Network/backdoor.js").length > 0) return;
         const candidates = this.get_backdoor_candidates();
         if (candidates.length === 0) return;
         const pid = await this.ns.exec("/Network/backdoor.js", "home", 1, candidates[0]);
         this.ns.tprintf("Network > Started Backdoor Process (%s) [pid %s]", candidates[0], pid);
     }
 
-}
-
-
-
-async function do_backdoor(ns, util, target) {
-    ns.tprintf("Installing backdoor on %s", target);
-    let singularity = new Singularity(ns);
-    await singularity.goto(target);
-    await ns.installBackdoor();
-    await singularity.goto("home");
-	await util.add_backdoor(target);
-	ns.tprintf("Installed backdoor on %s", target);
-}
-
-/** @param {NS} ns **/
-export async function main(ns) {
-    let util = new Util(ns);
-
-    while (true) {
-        let hackable = util.find_all_hackable(ns);
-        let cmp = (s0, s1) => ns.getHackTime(s0) - ns.getHackTime(s1);
-        hackable.sort(cmp);
-        let data = await util.get_backdoors(ns);
-        let toBackdoor = hackable.filter(s => !data.backdoor.includes(s));
-        if (toBackdoor.length > 0) {
-            let candidate = toBackdoor[0];
-            await do_backdoor(ns, util, candidate);
-			continue;
+    purchase_server(growthAmount) {
+        let server_info = this.purchase_server_info(growthAmount);
+        let count = this.ns.getPurchasedServers().length;
+        if (this.ns.getPlayer().money >= server_info.price) {
+            this.ns.tprintf("Network > Purchasing new server with %s GB RAM for $%s", this.util.formatNum(server_info.RAM), this.util.formatNum(server_info.price)); 
+			let purchased = this.ns.purchaseServer(this.util.purchased_prefix + "_" + count, server_info.RAM);
+			if (purchased) this.ns.toast("... Purchased new server: " + purchased);
         }
-        await ns.sleep(1000 * 60);
     }
+
+    purchase_server_info(growthAmount) {
+        const network_ram = this.hacks.get_max_RAM(...this.hacks.GetRunnables());
+        const desired_ram = network_ram * growthAmount;
+        let target_RAM = 2;
+        while (target_RAM < desired_ram) target_RAM <<= 1;
+        target_RAM = Math.min(target_RAM, this.ns.getPurchasedServerMaxRam());
+        const price = this.ns.getPurchasedServerCost(target_RAM);
+        return { RAM: target_RAM, price: price};
+    }
+
 }
-	
