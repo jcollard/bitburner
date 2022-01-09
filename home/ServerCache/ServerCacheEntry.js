@@ -53,10 +53,10 @@ export default class ServerCacheEntry {
     }
 
     hack_chance = () => this.ns.hackAnalyzeChance(this.host_name);
-    get_money_for_hack = (threads) => this.max_money() * this.ns.hackAnalyze(this.host_name);
+    get_money_for_hack = (threads) => threads * this.max_money() * this.ns.hackAnalyze(this.host_name);
 
-    can_hack = (percent) => this.is_min_security() && this.available_money() > (this.max_money()* (1 - percent));
-    can_grow = () => this.is_min_security() && !this.is_max_grow();
+    can_hack = (percent) => this.get_needed_weaken_threads() === 0 && this.available_money() > (this.max_money()* (1 - percent));
+    can_grow = () => this.get_needed_weaken_threads() === 0 && !this.is_max_grow();
 
     is_max_grow = () => this.needed_grow_threads() <= this.running_grow_threads();
 
@@ -81,14 +81,19 @@ export default class ServerCacheEntry {
     /**
      * @returns True if the security level is close to the minimum
      */
-    is_min_security = () => (this.security_level() - this.min_security_level) < 1.5;
+    is_min_security = () => (this.security_level() - this.min_security_level()) < 1.5;
     min_security_level = () => this.ns.getServerMinSecurityLevel(this.host_name);
     raw_security_level = () => this.ns.getServerSecurityLevel(this.host_name);
+
+    get_needed_weaken_threads = () => this.hacks.calc_weaken_threads_needed(this.host_name) - this.running_weaken_threads();
 
     /**
      * @returns The relative security level based on the number of threads running.
      */
-    security_level = () => this.raw_security_level - (this.weakenAnalyze(this.running_weaken_threads()));
+    security_level(){
+        if (this.running_weaken_threads() === 0) return this.raw_security_level();
+        return this.raw_security_level() - (this.ns.weakenAnalyze(this.running_weaken_threads()));
+    } 
     // TODO: Consider if it is necessary to add in hack and grow threads. I don't think it is necessary with
     // smart hack and smart grow since they level out their increase.
 
@@ -176,7 +181,7 @@ export default class ServerCacheEntry {
         info("ServerCacheEntry(%s).smart_weaken()", this.host_name);
 
         // Calculate the number of threads to completely weaken this server then try to start that many.
-        const weaken_threads = threads ? threads : this.hacks.calc_weaken_threads_needed(this.host_name);
+        const weaken_threads = threads ? threads : this.get_needed_weaken_threads();
         const left_over = await this.run_weaken(weaken_threads);
         const started = weaken_threads - left_over;
         return {

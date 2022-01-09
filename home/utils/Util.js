@@ -6,7 +6,7 @@ export default class Util {
 	static INSTANCE = undefined;
 
 	static getInstance(ns) {
-		if (INSTANCE === undefined) INSTANCE = new Util(ns);
+		if (Util.INSTANCE === undefined) Util.INSTANCE = new Util(ns);
 		return Util.INSTANCE;
 	}
 

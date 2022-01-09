@@ -38,8 +38,8 @@ export default class HackUtil {
     static INSTANCE = undefined;
 
 	static getInstance(ns) {
-		if (INSTANCE === undefined) INSTANCE = new HackUtil(ns);
-		return Util.INSTANCE;
+		if (HackUtil.INSTANCE === undefined) HackUtil.INSTANCE = new HackUtil(ns);
+		return HackUtil.INSTANCE;
 	}
 
     // Compare function for sorting Runnable Servers by max available ram

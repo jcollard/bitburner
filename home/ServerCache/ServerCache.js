@@ -18,8 +18,8 @@ export default class ServerCache {
     static INSTANCE = undefined;
 
 	static getInstance(ns, money_cap) {
-		if (INSTANCE === undefined) INSTANCE = new ServerCache(ns, money_cap);
-		return Util.INSTANCE;
+		if (ServerCache.INSTANCE === undefined) ServerCache.INSTANCE = new ServerCache(ns, money_cap);
+		return ServerCache.INSTANCE;
 	}
 
     constructor(ns, money_cap) {

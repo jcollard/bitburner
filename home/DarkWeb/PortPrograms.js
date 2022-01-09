@@ -1,3 +1,4 @@
+import Util from "/utils/Util.js";
 
 export default class PortPrograms {
 
@@ -5,29 +6,30 @@ export default class PortPrograms {
     static INSTANCE = undefined;
 
 	static getInstance(ns) {
-		if (INSTANCE === undefined) INSTANCE = new PortOpeners(ns);
-		return Util.INSTANCE;
+		if (PortPrograms.INSTANCE === undefined) PortPrograms.INSTANCE = new PortPrograms(ns);
+		return PortPrograms.INSTANCE;
 	}
 
     constructor(ns) {
         this.ns = ns;
+        this.util = new Util(ns); //.getInstance(ns);
     }
 
     /**
      * @returns A list of all port programs that have not been purchased
      */
-    needed_programs = () => PortPrograms.filter(program => !this.ns.fileExists(program))
+    needed_programs = () => PortPrograms.programs.filter(program => !this.ns.fileExists(program))
 
     /**
      * @returns A list of functions to call the port opening program on a specific server
      */
     available_programs() {
         let ports = [
-            ns.fileExists("BruteSSH.exe", "home") ? ns.brutessh : undefined,
-            ns.fileExists("FTPCrack.exe", "home") ? ns.ftpcrack : undefined,
-            ns.fileExists("relaySMTP.exe", "home") ? ns.relaysmtp : undefined,
-            ns.fileExists("HTTPWorm.exe", "home") ? ns.httpworm : undefined,
-            ns.fileExists("SQLInject.exe", "home") ? ns.sqlinject : undefined
+            this.ns.fileExists("BruteSSH.exe", "home") ? (host) => this.ns.brutessh(host) : undefined,
+            this.ns.fileExists("FTPCrack.exe", "home") ? (host) => this.ns.ftpcrack(host) : undefined,
+            this.ns.fileExists("relaySMTP.exe", "home") ? (host) => this.ns.relaysmtp(host) : undefined,
+            this.ns.fileExists("HTTPWorm.exe", "home") ? (host) => this.ns.httpworm(host) : undefined,
+            this.ns.fileExists("SQLInject.exe", "home") ? (host) => this.ns.sqlinject(host) : undefined
         ];
         return ports.filter(p => p !== undefined);
     }
@@ -55,10 +57,11 @@ export default class PortPrograms {
         this.ns.tprintf("PortPrograms > Rooting %s Servers", targets.length);
         
         for (let target of targets) {
-            this.ns.tprintf("PortPrograms > Rooting %s", target);
+            this.ns.tprintf("... Rooting %s", target);
             for (let program of programs) {
                 program(target);
             }
+            this.ns.nuke(target);
         }
     }
 
