@@ -46,7 +46,7 @@ export async function main(ns) {
 	// ns.tprintf("WARNING STILL IGNORING n00dles!");
 	while (true) {
 		max_grow_money = Math.max(100_000, (ns.getPlayer().money/8));
-		hackables = utils.find_all_hackable(ns); //.filter((s) => s !== "n00dles");
+		hackables = utils.find_all_hackable(ns).filter((s) => s !== "n00dles");
 		workers = sort_workers(ns, utils.find_all_runnable(ns));
 		let reverse_workers = workers.filter(s => true).reverse();
 
@@ -107,8 +107,13 @@ async function weaken_hackables(ns, hackables, workers, next_weaken_at) {
 	let count = 0;
 	let sVal = (s) => (ns.getServerSecurityLevel(s) - ns.getServerMinSecurityLevel(s)) * ns.getWeakenTime;
 	let cmp = (s0, s1) => sVal(s0) - sVal(s1);
-	let weakestFirst = hackables.sort(cmp);
-	weakestFirst = weakestFirst.filter(s => ns.getServerSecurityLevel(s) > ns.getServerMinSecurityLevel(s));
+	let weakestFirst = hackables
+	// Only weaken servers that are above the minimum threshold.
+	.filter(s => (ns.getServerSecurityLevel(s) - ns.getServerMinSecurityLevel(s)) >= 1.5)
+	// Only weaken servers need additional weakening
+	.filter(s => (cache.getServer(s).calc_weaken_threads() > 0))
+	.sort(cmp);
+		
 	ns.tprintf("Try to weaken %s", weakestFirst.join(", "));
 	for (let target of weakestFirst) {
 		if (hacks.get_available_RAM(...hacks.GetRunnables()) < hacks.WEAKEN_RAM()) return count;
@@ -130,8 +135,10 @@ async function grow_hackables(ns, hackables, workers, next_grow_at) {
 	let sVal = (s) => ns.getWeakenTime(s);
 	let cmp = (s0, s1) => sVal(s0) - sVal(s1);
 	let closestFirst = hackables
+		// Only grow servers that are close to minimum security
+		.filter(s => (ns.getServerSecurityLevel(s) - ns.getServerMinSecurityLevel(s)) < 2)
 		// Only grow servers that need grow threads
-		.filter(s => cache.getServer(s).calc_grow_threads())
+		.filter(s => cache.getServer(s).calc_grow_threads() > 0)
 		.sort(cmp); // .reverse();
 		
 	ns.tprintf("Considering grow on %s", closestFirst.join(", "));
@@ -155,13 +162,15 @@ async function hack_hackables(ns, hackables, workers, next_hack_at) {
 	let count = 0;
 	let highest_profit_ratio = find_best_ratio(ns, hackables)
 		// Only hack servers that are weakened
-		.filter(s => ns.getServerSecurityLevel(s) == ns.getServerMinSecurityLevel(s))
+		// Only grow servers that are close to minimum security
+		.filter(s => (ns.getServerSecurityLevel(s) - ns.getServerMinSecurityLevel(s)) < 2)
 		// Only hack servers with a decent probability of being successful
 		.filter(s => ns.hackAnalyzeChance(s) >= 0.5)
 		// Only hack servers that are not currently being hacked
 		.filter(s => hacks.get_hack_threads(s) === 0)
 		// Only hack servers that are fully grown.
-		.filter(s => ns.getServerMoneyAvailable(s) == ns.getServerMaxMoney(s));
+		.filter(s => ns.getServerMoneyAvailable(s) == ns.getServerMaxMoney(s))
+		.filter(s => ns.getServerMoneyAvailable(s) > 0);
 
 	ns.tprintf("Considering hack on %s", highest_profit_ratio.join(", "));
 	for (let target of highest_profit_ratio) {
@@ -179,7 +188,7 @@ async function hack_hackables(ns, hackables, workers, next_hack_at) {
 			util.formatNum(info.hack_threads), 
 			info.workers, 
 			util.formatNum(info.weaken_threads), 
-			chance,
+			util.formatNum(chance),
 			util.formatNum(expected_money),
 			util.formatTime(info.time), 
 			entry.host_name]; //.map(num => util.formatNum(num));
@@ -191,13 +200,14 @@ async function hack_hackables(ns, hackables, workers, next_hack_at) {
 
 function find_best_ratio(ns, hackables) {
 	let best_order = hackables.filter(s => true);
-	let ratio = (server) => {
-		let time = ns.getHackTime(server);
-		let amountPerThread = ns.getServerMoneyAvailable(server) * ns.hackAnalyze(server);
-		let chance = ns.hackAnalyzeChance(server);
-		let value = (amountPerThread * chance) / time;
-		return value;
-	};
+	// Select the servers with the highest growth factor first, they will be easier to regrow.
+	let ratio = (server) => ns.getServerGrowth(server); 
+	// 	let time = ns.getWeakenTime(server);
+	// 	let amountPerThread = ns.getServerMoneyAvailable(server) * ns.hackAnalyze(server);
+	// 	let chance = ns.hackAnalyzeChance(server);
+	// 	let value = (amountPerThread * chance) / time;
+	// 	return value;
+	// };
 	// We want the largest value first
 	let cmp = (s0, s1) => ratio(s0) - ratio(s1);
 	best_order = best_order.sort(cmp).reverse();
@@ -219,8 +229,7 @@ async function weaken(ns, target, workers) {
 		threads_needed -= threads_to_start;
 	}
 	let started = total_needed - threads_needed;
-	let args = [started, ns.getWeakenTime(target)].map(s => util.formatNum(s));
-	ns.tprintf("... Started %s weaken threads taking %s millis - " + target, ...args);
+	ns.tprintf("... Started %s weaken threads taking %s - " + target, util.formatNum(started), util.formatTime(ns.getWeakenTime(target)));
 	return Date.now() + ns.getWeakenTime(target);
 }
 

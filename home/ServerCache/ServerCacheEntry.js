@@ -407,7 +407,7 @@ export default class ServerCacheEntry {
     calc_raw_grow_threads = () => this.hacks.calc_grow_threads_needed(this.host_name);
     calc_grow_threads = () => this.hacks.calc_grow_threads_needed(this.host_name) - this.hacks.get_grow_threads(this.host_name);
 
-    calc_weaken_threads = () => this.hacks.calc_weaken_threads_needed(this.host_name);
+    calc_weaken_threads = () => this.hacks.calc_weaken_threads_needed(this.host_name) - this.hacks.get_weaken_threads(this.host_name);
 
     calc_raw_hack_threads = (percent) => this.hacks.calc_hack_threads(this.host_name, percent);
     calc_hack_threads = (percent) => this.hacks.calc_hack_threads(this.host_name, percent) - this.hacks.get_hack_threads(this.host_name);
