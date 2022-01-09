@@ -5,7 +5,10 @@ import ServerCache from "/ServerCache/ServerCache.js";
 
 let data = {};
 let notifications = "";
-let hack_percent = 0.25;
+let hack_percent = 0.10;
+let min_percent = 0.10;
+let max_percent = 0.90;
+let hack_increments = 0;
 let min_threads = 0;
 let max_grow_money = 0;
 let util;
@@ -58,7 +61,18 @@ export async function main(ns) {
 		if (hacks.get_available_RAM(...hacks.GetRunnables()) > 2)
 			await grow_hackables(ns, hackables, workers, next_grow_at);
 
-		
+		if (hacks.get_available_threads(...workers) > 100 && hack_percent < max_percent) {
+			hack_increments++;
+			hack_percent = min_percent + 0.025 * hack_increments;
+			hack_percent = Math.min(max_percent, hack_percent);
+			ns.tprintf("Over 100 available threads left over, increasing hack_percent to %s", hack_percent);
+		} else if (hack_percent > min_percent) {
+			hack_increments--;
+			hack_increments = Math.max(0, hack_increments);
+			hack_percent = min_percent + 0.025 * hack_increments;
+			hack_percent = Math.max(min_percent, hack_percent);
+			ns.tprintf("Not enough threads, decreasing hack_percent to %s ", hack_percent);
+		}
 
 		await ns.sleep(1000 * 10);
 	}
@@ -112,29 +126,20 @@ async function weaken_hackables(ns, hackables, workers, next_weaken_at) {
 async function grow_hackables(ns, hackables, workers, next_grow_at) {
 	// Sort such that servers that require the fewest threads to grow come first (we can hack them sooner!)
 	let count = 0;
-	// TODO: Consider a different order?
-	let sVal = (s) => cache.getServer(s).calc_grow_threads();
+	// Favor servers that have a faster weaken time since this is the bottle neck on threads
+	let sVal = (s) => ns.getWeakenTime(s);
 	let cmp = (s0, s1) => sVal(s0) - sVal(s1);
-	let closestFirst = hackables.sort(cmp); // .reverse();
-
-	closestFirst = closestFirst.filter(s => ns.getServerSecurityLevel(s) == ns.getServerMinSecurityLevel(s))
-				.filter(s => ns.getServerMoneyAvailable(s) < ns.getServerMaxMoney(s))
-				.filter(s => ns.getServerMaxMoney(s) > 0);
+	let closestFirst = hackables
+		// Only grow servers that need grow threads
+		.filter(s => cache.getServer(s).calc_grow_threads())
+		.sort(cmp); // .reverse();
 		
 	ns.tprintf("Considering grow on %s", closestFirst.join(", "));
 	for (let target of closestFirst) {
 		if (hacks.get_available_RAM(...hacks.GetRunnables()) < hacks.GROW_RAM()) return count;
-		let currTime = Date.now();
-		let grow_threads = hacks.get_grow_threads(target);
-		let needed_grow_threads = hacks.calc_grow_threads_needed(target);
-		if (grow_threads >= needed_grow_threads && next_grow_at[target] > currTime) {
-			ns.tprintf("... Skipping %s for: %s", target, util.formatTime(next_grow_at[target] - Date.now()));
-			continue;
-		}
 		let entry = cache.getServer(target);
 		let info = await entry.smart_grow();
 		if (info.grow_threads === 0) {
-			ns.tprintf("... Did not start any grow threads. Likely not enough network RAM.");
 			continue;
 		}
 		let args = [util.formatNum(info.grow_threads), info.workers, util.formatNum(info.weaken_threads), util.formatTime(info.time), entry.host_name]; //.map(num => util.formatNum(num));
@@ -149,24 +154,37 @@ async function hack_hackables(ns, hackables, workers, next_hack_at) {
 	// Sort such that the money earned to time spent ratio is the highest
 	let count = 0;
 	let highest_profit_ratio = find_best_ratio(ns, hackables)
+		// Only hack servers that are weakened
 		.filter(s => ns.getServerSecurityLevel(s) == ns.getServerMinSecurityLevel(s))
+		// Only hack servers with a decent probability of being successful
 		.filter(s => ns.hackAnalyzeChance(s) >= 0.5)
+		// Only hack servers that are not currently being hacked
+		.filter(s => hacks.get_hack_threads(s) === 0)
+		// Only hack servers that are fully grown.
 		.filter(s => ns.getServerMoneyAvailable(s) == ns.getServerMaxMoney(s));
 
 	ns.tprintf("Considering hack on %s", highest_profit_ratio.join(", "));
 	for (let target of highest_profit_ratio) {
 		let available_ram = hacks.get_available_RAM(...hacks.GetRunnables());
 		if (available_ram < hacks.HACK_RAM()) return count;
-		// Only run weaken on the target if it has finished executing
-		if (target in next_hack_at) {
-			let currTime = Date.now();
-			if (next_hack_at[target] > currTime) {
-				ns.tprintf("... Skipping %s for: %s millis", target, util.formatNum(next_hack_at[target] - Date.now()));
-				continue;
-			}
+		
+		let entry = cache.getServer(target);
+		let info = await entry.smart_hack(hack_percent);
+		if (info.hack_threads === 0) {
+			continue;
 		}
-		next_hack_at[target] = await hack(ns, target, workers);
-		if (next_hack_at[target] > 0) count++;
+		let expected_money = info.hack_threads * ns.getServerMoneyAvailable(target) * ns.hackAnalyze(target);
+		let chance = ns.hackAnalyzeChance(target) * 100;
+		let args = [
+			util.formatNum(info.hack_threads), 
+			info.workers, 
+			util.formatNum(info.weaken_threads), 
+			chance,
+			util.formatNum(expected_money),
+			util.formatTime(info.time), 
+			entry.host_name]; //.map(num => util.formatNum(num));
+    	ns.tprintf("... Started %s hack threads on %s workers and %s weaken threads. %s%% chance of $%s in %s. - %s", ...args);
+		next_hack_at[target] = Date.now() + info.time;
 	}
 	return count;
 }

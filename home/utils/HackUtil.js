@@ -169,7 +169,7 @@ export default class HackUtil {
 
     calc_hack_threads(server, percent) {
         let target_amount = this.ns.getServerMoneyAvailable(server) * percent;
-        return this.ns.hackAnalyzeThreads(server, target_amount);
+        return Math.ceil(this.ns.hackAnalyzeThreads(server, target_amount));
     }
 
 }

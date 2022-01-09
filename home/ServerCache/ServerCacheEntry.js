@@ -267,14 +267,150 @@ export default class ServerCacheEntry {
         return final_return();
     }
 
+    async smart_hack(percent, threads) {
+        const info = (str, ...args) => undefined;
+        // const info = (str, ...args) => debug(str, ...args);
+        info("ServerCacheEntry(%s).smart_hack()", this.host_name);
+
+        // 1. Discover the number of threads needed to hack.
+        // 2. Using the server with the most available RAM, start the
+        //    maximum number of hack threads possible.
+        // 3. For the threads started, discover the counter number of
+        //    weaken threads to counter that grow.
+        // 4. Using the servers with the **least** available RAM, start
+        //    the counter threads across those servers
+        // 5. If there are more hack threads necessary, wait some delta time
+        //    then go to step 2
+
+        // The amount of buffer time to give between executions
+        const delta = 100;
+        // Total amount of delay time among all threads
+        let total_delay = 0;
+        let start_time = Date.now();
+
+        // Total number of grow threads needed
+        const target_hack_threads = threads ? threads : this.calc_hack_threads(percent);
+        if (target_hack_threads === 0) {
+            info("... Nothing to hack.");
+            return {
+                time: 0,
+                hack_threads: 0,
+                weaken_threads: 0,
+                workers: 0
+            }
+        }
+        let hack_threads_needed = target_hack_threads;
+        let hack_threads_started = 0;
+        let weaken_threads_started = 0;
+        let total_workers = 0;
+
+        const final_return = () => {
+            const expected_finish = Math.max(this.get_hack_time(), this.get_weaken_time()) + total_delay;
+            info("... Hack Time: %s", this.util.formatNum(this.get_hack_time()));
+            info("... Weaken Time: %s", this.util.formatNum(this.get_weaken_time()));
+            info("... Expected Finish: %s", this.util.formatNum(expected_finish));
+            this.hack_until = Date.now() + expected_finish;
+            const data = {
+                time: expected_finish,
+                hack_threads: hack_threads_started,
+                weaken_threads: weaken_threads_started,
+                workers: total_workers,
+            }
+            return data;
+        };
+
+        while (hack_threads_needed > 0) {
+            info("... %s hack threads needed.", hack_threads_needed);
+            // worker_info.server --- host
+            // worker_info.threads --- available # of threads
+            const worker_info = this.cache.find_available_server(hack_threads_needed, this.hacks.HACK_RAM());
+            if (worker_info === undefined) {
+                // Out of RAM, abandon
+                info("... Out of RAM, could not finish")
+                return final_return();
+            }
+            info("... Found worker %s with %s threads.", worker_info.server, worker_info.threads);
+            hack_threads_needed -= worker_info.threads;
+
+            const start_hack = (delay) => this.hack(worker_info, delay);
+            const counter_hack_threads = this.calc_counter_hack_threads(worker_info.threads);
+
+            // Counter threads are more important, if I don't have enough total threads, remove grow_threads
+            const available_threads = this.hacks.get_available_threads(...this.hacks.GetRunnables());
+            if (worker_info.threads + counter_hack_threads > available_threads) {
+                const diff = (worker_info.threads + counter_hack_threads) - available_threads;
+                worker_info.threads -= diff;
+                if (worker_info.threads <= 0) {
+                    info("... Out of RAM, could not finish");
+                    return final_return();
+                }
+            }
+
+            info("... This will require %s counter threads.", counter_hack_threads);
+            const start_weaken = (delay) => this.run_weaken(counter_hack_threads, delay);
+
+            let remaining_weaken_threads = -1;
+            // If weaken will finish first, start weaken first
+            const weaken_time = this.get_weaken_time();
+            const hack_time = this.get_hack_time();
+            info("... Weaken Time: %s millis | Hack Time: %s millis", this.util.formatNum(weaken_time), this.util.formatNum(hack_time));
+
+            let weaken_start_time = -1;
+            let hack_start_time = -1;
+            if (weaken_time < hack_time) {
+                // If this is the case, we have weaken delayed by the difference in hack_time and weaken time
+                // plus a small delta
+                weaken_start_time = (hack_time - weaken_time) + total_delay + delta;
+                hack_start_time = total_delay;
+                total_delay += delta;
+            } else { // hack_time < weaken_time
+                // If this is the case, we have grow delayed by the difference in weaken_time and hack_time
+                // minus a small delta so the grow occurs first
+                weaken_start_time = total_delay;
+                hack_start_time = (weaken_time - hack_time) + total_delay - delta;
+                
+            }
+
+            const hack_delay = hack_start_time; // calc_delay(grow_start_time);
+            info("... Starting Hack Threads with Delay: %s", this.util.formatNum(hack_delay));
+            await start_hack(hack_delay);
+            hack_threads_started += worker_info.threads;
+            total_workers++;
+            const weaken_delay = weaken_start_time; //calc_delay(weaken_start_time);
+            info("... Starting Counter Threads with Delay: %s", weaken_delay);
+            remaining_weaken_threads = await start_weaken(weaken_delay);
+            weaken_threads_started += counter_hack_threads;
+            
+
+            if (remaining_weaken_threads > 0) {
+                info("... Out of RAM, could not finish");
+                return final_return();
+            }
+
+            total_delay += delta;
+        }
+        const expected_finish = Math.max(this.get_hack_time(), this.get_weaken_time()) + total_delay;
+        info("... Hack started, expected finish in %s millis", expected_finish);
+        return final_return();
+    }
+
     calc_counter_growth_threads(threads) {
         let security_increase = this.ns.growthAnalyzeSecurity(threads);
         return Math.ceil(this.hacks.calc_threads_to_weaken(security_increase));
     }
 
-    calc_grow_threads = () => this.hacks.calc_grow_threads_needed(this.host_name);
+    calc_counter_hack_threads(threads) {
+        let security_increase = this.ns.hackAnalyzeSecurity(threads);
+        return Math.ceil(this.hacks.calc_threads_to_weaken(security_increase));
+    }
+
+    calc_raw_grow_threads = () => this.hacks.calc_grow_threads_needed(this.host_name);
+    calc_grow_threads = () => this.hacks.calc_grow_threads_needed(this.host_name) - this.hacks.get_grow_threads(this.host_name);
+
     calc_weaken_threads = () => this.hacks.calc_weaken_threads_needed(this.host_name);
-    calc_hack_threads = (percent) => this.hacks.calc_hack_threads(this.host_name, percent);
+
+    calc_raw_hack_threads = (percent) => this.hacks.calc_hack_threads(this.host_name, percent);
+    calc_hack_threads = (percent) => this.hacks.calc_hack_threads(this.host_name, percent) - this.hacks.get_hack_threads(this.host_name);
 
     get_weaken_time = () => this.ns.getWeakenTime(this.host_name);
     get_hack_time = () => this.ns.getHackTime(this.host_name);
