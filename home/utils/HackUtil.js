@@ -30,10 +30,17 @@ function MoneyTimeRatio(ns) {
  * A Utility class for Bitburner
  */
 export default class HackUtil {
+    
 
     static HACK_SCRIPT = HACK_SCRIPT; // 1.75 GB
     static WEAKEN_SCRIPT = WEAKEN_SCRIPT; // 1.75 GB
     static GROW_SCRIPT = GROW_SCRIPT; // 1.75 GB
+    static INSTANCE = undefined;
+
+	static getInstance(ns) {
+		if (INSTANCE === undefined) INSTANCE = new HackUtil(ns);
+		return Util.INSTANCE;
+	}
 
     // Compare function for sorting Runnable Servers by max available ram
     _MostRAM = (s0, s1) => -(this.get_available_RAM(s0) - this.get_available_RAM(s1));

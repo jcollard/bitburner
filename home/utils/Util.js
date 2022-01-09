@@ -3,6 +3,13 @@
  */
 export default class Util {
 
+	static INSTANCE = undefined;
+
+	static getInstance(ns) {
+		if (INSTANCE === undefined) INSTANCE = new Util(ns);
+		return Util.INSTANCE;
+	}
+
 	purchased_prefix = "purchased_server";
 	meta_data_file = "/meta/data.txt";
 	back_door_file = "/meta/backdoors.json";

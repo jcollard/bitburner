@@ -52,6 +52,50 @@ export default class ServerCacheEntry {
         debug("   Server is prepped!");
     }
 
+    hack_chance = () => this.ns.hackAnalyzeChance(this.host_name);
+    get_money_for_hack = (threads) => this.max_money() * this.ns.hackAnalyze(this.host_name);
+
+    can_hack = (percent) => this.is_min_security() && this.available_money() > (this.max_money()* (1 - percent));
+    can_grow = () => this.is_min_security() && !this.is_max_grow();
+
+    is_max_grow = () => this.needed_grow_threads() <= this.running_grow_threads();
+
+    needed_grow_threads = () => this.hacks.calc_grow_threads_needed(this.host_name);
+
+    /**
+     * @returns An estimated amount of money that should be available after all hack threads finish
+     */
+    available_money() {
+        if (!this.is_min_security()) return this.raw_available_money();
+        if (this.is_max_grow) return this.max_money();
+        const max_money = this.ns.getServerMaxMoney(this.host_name);
+        const percent_taken = this.running_hack_threads() * this.ns.hackAnalyze(this.host_name);
+        const estimated_taken = max_money * percent_taken;
+        // TODO: Calculate how much money is added by the currently running growth threads
+        return max_money - estimated_taken;
+    }
+
+    raw_available_money = () => this.ns.getServerMoneyAvailable(this.host_name);
+    max_money = () => this.ns.getServerMaxMoney(this.host_name);
+
+    /**
+     * @returns True if the security level is close to the minimum
+     */
+    is_min_security = () => (this.security_level() - this.min_security_level) < 1.5;
+    min_security_level = () => this.ns.getServerMinSecurityLevel(this.host_name);
+    raw_security_level = () => this.ns.getServerSecurityLevel(this.host_name);
+
+    /**
+     * @returns The relative security level based on the number of threads running.
+     */
+    security_level = () => this.raw_security_level - (this.weakenAnalyze(this.running_weaken_threads()));
+    // TODO: Consider if it is necessary to add in hack and grow threads. I don't think it is necessary with
+    // smart hack and smart grow since they level out their increase.
+
+    running_weaken_threads = () => this.hacks.get_weaken_threads(this.host_name);
+    running_grow_threads = () => this.hacks.get_grow_threads(this.host_name);
+    running_hack_threads = () => this.hacks.get_hack_threads(this.host_name);
+
     calc_threads(max_ram) {
         if (!this.is_prepped()) return undefined;
         let max_threads = max_ram / this.hacks.HACK_RAM();
@@ -124,6 +168,21 @@ export default class ServerCacheEntry {
         }
         debug("   Prep is finished!");
         return true;
+    }
+
+    async smart_weaken(threads) {
+        const info = (str, ...args) => undefined;
+        // const info = (str, ...args) => debug(str, ...args);
+        info("ServerCacheEntry(%s).smart_weaken()", this.host_name);
+
+        // Calculate the number of threads to completely weaken this server then try to start that many.
+        const weaken_threads = threads ? threads : this.hacks.calc_weaken_threads_needed(this.host_name);
+        const left_over = await this.run_weaken(weaken_threads);
+        const started = weaken_threads - left_over;
+        return {
+            time: this.get_weaken_time(),
+            weaken_threads: started,
+        };
     }
 
     /**
