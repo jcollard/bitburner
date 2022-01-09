@@ -28,7 +28,10 @@ export async function main(ns) {
 
 		ns.toast("Attempting to purchase port openers.", "info");
 		for (let port of Object.keys(ports()).filter(p => ports()[p] !== false)) {
-			await ns.purchaseProgram(port);
+			let program = ports()[port];
+			if (await ns.purchaseProgram(program)) {
+				ns.tprintf("Purchased: %s", program)
+			} 
 		}
 
 		await ns.sleep(1000 * 60);

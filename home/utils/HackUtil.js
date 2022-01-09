@@ -4,6 +4,14 @@ const HACK_SCRIPT = "/simple/hack.js"; // 1.75 GB
 const WEAKEN_SCRIPT = "/simple/weaken.js"; // 1.75 GB
 const GROW_SCRIPT = "/simple/grow.js"; // 1.75 GB
 
+let NS = undefined;
+let DEBUG = true;
+
+function debug(str, ...args) {
+    if (!DEBUG) return;
+    NS.tprintf(str, ...args);
+}
+
 let sum = (a, b) => a + b;
 
 // Compare function which returns the highest money / time ratio.
@@ -40,6 +48,7 @@ export default class HackUtil {
 	 * @param {NS} ns 
 	 */
 	constructor(ns) {
+        NS = ns;
 		this.ns = ns;
         this.util = new Util(ns);
 	}
@@ -63,6 +72,19 @@ export default class HackUtil {
             return available;
         }
         return servers.map(ram).reduce(sum);
+    }
+
+    get_weaken_threads = (target) => this.get_threads(target, HackUtil.WEAKEN_SCRIPT);
+    get_grow_threads = (target) => this.get_threads(target, HackUtil.GROW_SCRIPT);
+    get_hack_threads = (target) => this.get_threads(target, HackUtil.HACK_SCRIPT);
+
+    get_threads(target, script) {
+        let processes = [];
+        for (let server of this.GetRunnables()) {
+            let ps = this.ns.ps(server).filter(p => p.filename === script && p.args[0] === target);
+            processes.push(...ps);
+        }
+        return processes.map(p => p.threads).reduce(sum, 0);
     }
 
     /**

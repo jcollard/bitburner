@@ -27,7 +27,9 @@ export async function main(ns) {
     freport("RAM:", fMinMax(ram, max_ram));
     freport("Money:", fMinMax(money, max_money));
     freport("Security:", fMinMax(security, min_security));
-
+    freport("Active Weaken Threads:", util.formatNum(hacks.get_weaken_threads(target)));
+    freport("Active Grow Threads:", util.formatNum(hacks.get_grow_threads(target)));
+    freport("Active Hack Threads:", util.formatNum(hacks.get_hack_threads(target)));
 
     // await ns.alert("Test");
 }
