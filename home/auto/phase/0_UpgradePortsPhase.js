@@ -2,6 +2,7 @@ import Util from "/utils/Util.js";
 import HackUtil from "/utils/HackUtil.js";
 import ServerCache from "/ServerCache/ServerCache.js";
 import PortPrograms from "/DarkWeb/PortPrograms.js";
+import Network from "/Network/Network.js";
 
 let NS = undefined;
 let DEBUG = true;
@@ -33,6 +34,7 @@ export default class UpgradePortsPhase {
         this.hacks = new HackUtil(ns); // .getInstance(ns);
         this.cache = new ServerCache(ns); //.getInstance(ns);
         this.ports = new PortPrograms(ns); //.getInstance(ns);
+        this.net = new Network(ns);
         this.hack_percent = 0.1;
         this.min_hack_percent = 0.1;
         this.max_hack_percent = 0.9;
@@ -53,6 +55,9 @@ export default class UpgradePortsPhase {
         // Try to open ports
         info("... Trying to open ports.");
         this.ports.open_ports();
+
+        info("... Trying to install backdoors.");
+        await this.net.start_next_backdoor();
         
 
         let targets = this.get_target_servers().map(s => this.cache.getServer(s));
@@ -178,8 +183,10 @@ export default class UpgradePortsPhase {
 
     get_target_servers() {
         // Use the 3 servers with the highest growth rate
+        let cmp = (s0, s1) => this.ns.getServerGrowth(s0) - this.ns.getServerGrowth(s1);
         return this.hacks.GetHackables()
-            .filter(s => this.ns.getServerGrowth(s))
+            .filter(s => this.cache.getServer(s).max_money() > 0)
+            .sort(cmp)
             .slice(0, 3);
     }
 

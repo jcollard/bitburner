@@ -47,7 +47,7 @@ export default class Util {
 			current_path.push(target);
 			return current_path;
 		}
-	
+
 		// Otherwise, we get a list of servers to visit
 		let to_visit = neighbors.filter(s => !visited.includes(s));
 		let newVisited = [];
@@ -58,13 +58,13 @@ export default class Util {
 		let nextPath = [];
 		current_path.forEach(s => nextPath.push(s));
 		nextPath.push(current);
-	
+
 		// Then we recursively check each neighbor
 		for (let s of to_visit) {
 			let result = this._find_path(target, s, newVisited, nextPath);
 			if (result) return result;
 		}
-	 
+
 		// If we make it this far, we can't find the target on this path
 		return null;
 	}
@@ -96,7 +96,7 @@ export default class Util {
 	 * @returns A list of servers that we have purchased
 	 */
 	find_all_purchased() {
-		return find_all_runnable().filter (s => s.startsWith(this.purchased_prefix));
+		return find_all_runnable().filter(s => s.startsWith(this.purchased_prefix));
 	}
 
 	/**
@@ -176,39 +176,44 @@ export default class Util {
 	 * @returns the array
 	 */
 	shuffle(array) {
-		let currentIndex = array.length,  randomIndex;
-	  
+		let currentIndex = array.length, randomIndex;
+
 		// While there remain elements to shuffle...
 		while (currentIndex != 0) {
-	  
-		  // Pick a remaining element...
-		  randomIndex = Math.floor(Math.random() * currentIndex);
-		  currentIndex--;
-	  
-		  // And swap it with the current element.
-		  [array[currentIndex], array[randomIndex]] = [
-			array[randomIndex], array[currentIndex]];
+
+			// Pick a remaining element...
+			randomIndex = Math.floor(Math.random() * currentIndex);
+			currentIndex--;
+
+			// And swap it with the current element.
+			[array[currentIndex], array[randomIndex]] = [
+				array[randomIndex], array[currentIndex]];
 		}
-	  
+
 		return array;
-	  }
+	}
 
-	  /**
-	   * Displays the specified error to the terminal and then exits the script.
-	   * @param {*} str 
-	   * @param  {...any} args 
-	   */
-	  error(str, ...args) {
-		  this.ns.tprintf("ERROR: " + str, ...args);
-		  this.ns.exit();
-	  }
+	/**
+	 * Displays the specified error to the terminal and then exits the script.
+	 * @param {*} str 
+	 * @param  {...any} args 
+	 */
+	error(str, ...args) {
+		this.ns.tprintf("ERROR: " + str, ...args);
+		this.ns.exit();
+	}
 
-	  /**
-	   * Given a number, converts it to the best 7 character length
-	   * @param {number} num 
-	   * @returns A string that is 7 characters in length
-	   */
-	  formatNum(num) {
+	exit_warning(str, ...args) {
+		this.ns.tprintf("WARNING: " + str, ...args);
+		this.ns.exit();
+	}
+
+	/**
+	 * Given a number, converts it to the best 7 character length
+	 * @param {number} num 
+	 * @returns A string that is 7 characters in length
+	 */
+	formatNum(num) {
 		if (num < 1_000) {
 			return ("" + num).substring(0, 7).padStart(7, " ");
 		}
@@ -219,31 +224,31 @@ export default class Util {
 			return this.toMillions(num);
 		}
 		if (num < 1_000_000_000_000) {
-		return this.toBillions(num);
+			return this.toBillions(num);
 		}
 		return this.toTrillions(num);
-	  }
+	}
 
-	  /**
-	   * Given a number in milliseconds, return a string that is a "nicely" formatted time.
-	   * @param {number} millis
-	   */
-	  formatTime(millis) {
+	/**
+	 * Given a number in milliseconds, return a string that is a "nicely" formatted time.
+	 * @param {number} millis
+	 */
+	formatTime(millis) {
 		if (millis < 1_000) {
 			return ("" + millis) + " ms";
 		}
 		let seconds = Math.floor(millis / 1000);
 		let minutes = Math.floor(seconds / 60);
-		let rem_seconds = ("" + seconds - (minutes*60));
+		let rem_seconds = ("" + seconds - (minutes * 60));
 		return this.ns.sprintf("%sm %ss", minutes, rem_seconds);
-	  }
+	}
 
-	  toThousands = (num) => this.__to_num(num, 1_000, "k");
-	  toMillions = (num) => this.__to_num(num, 1_000_000, "m");
-	  toBillions = (num) => this.__to_num(num, 1_000_000_000, "b");
-	  toTrillions = (num) => this.__to_num(num, 1_000_000_000_000, "t");
-	  __to_num(num, digits, ch) {
-		  return ((Math.ceil(num / (digits/1000)) / 1000) + ch).padStart(7, " ");
-	  }
+	toThousands = (num) => this.__to_num(num, 1_000, "k");
+	toMillions = (num) => this.__to_num(num, 1_000_000, "m");
+	toBillions = (num) => this.__to_num(num, 1_000_000_000, "b");
+	toTrillions = (num) => this.__to_num(num, 1_000_000_000_000, "t");
+	__to_num(num, digits, ch) {
+		return ((Math.ceil(num / (digits / 1000)) / 1000) + ch).padStart(7, " ");
+	}
 
 }
