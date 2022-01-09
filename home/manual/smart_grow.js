@@ -19,11 +19,11 @@ export async function main(ns) {
 
     if (ns.args.length < 1) util.error("Expected first argument to be a server name.");
     let target = cache.getServer(ns.args[0]);
-    let info = target.smart_grow();
+    let threads = ns.args[1];
+    let info = await target.smart_grow(threads);
     
-    let args = [info.grow_threads, info.weaken_threads, info.time].map(num => util.formatNum(num));
-    args.push(target.host_name);
-    ns.tprintf("Started %s grow threads and %s weaken threads. They will finish in %s millis. - %s", ...args);
+    let args = [util.formatNum(info.grow_threads), info.workers, util.formatNum(info.weaken_threads), util.formatTime(info.time), target.host_name]; //.map(num => util.formatNum(num));
+    ns.tprintf("Started %s grow threads on %s workers and %s weaken threads. They will finish in %s. - %s", ...args);
     
 
 }

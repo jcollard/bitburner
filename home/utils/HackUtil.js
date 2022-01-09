@@ -74,6 +74,10 @@ export default class HackUtil {
         return servers.map(ram).reduce(sum);
     }
 
+    get_available_threads = (...servers)  => servers.map(s => Math.floor(this.get_available_RAM(s) / this.HACK_RAM())).reduce(sum);
+    get_max_threads = (...servers) => servers.map(s => Math.floor(this.get_max_RAM(s) / this.HACK_RAM())).reduce(sum)
+    
+
     get_weaken_threads = (target) => this.get_threads(target, HackUtil.WEAKEN_SCRIPT);
     get_grow_threads = (target) => this.get_threads(target, HackUtil.GROW_SCRIPT);
     get_hack_threads = (target) => this.get_threads(target, HackUtil.HACK_SCRIPT);

@@ -217,6 +217,20 @@ export default class Util {
 		return this.toTrillions(num);
 	  }
 
+	  /**
+	   * Given a number in milliseconds, return a string that is a "nicely" formatted time.
+	   * @param {number} millis
+	   */
+	  formatTime(millis) {
+		if (millis < 1_000) {
+			return ("" + millis) + " ms";
+		}
+		let seconds = Math.floor(millis / 1000);
+		let minutes = Math.floor(seconds / 60);
+		let rem_seconds = ("" + seconds - (minutes*60));
+		return this.ns.sprintf("%sm %ss", minutes, rem_seconds);
+	  }
+
 	  toThousands = (num) => this.__to_num(num, 1_000, "k");
 	  toMillions = (num) => this.__to_num(num, 1_000_000, "m");
 	  toBillions = (num) => this.__to_num(num, 1_000_000_000, "b");

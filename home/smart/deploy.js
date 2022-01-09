@@ -1,6 +1,7 @@
 import * as utils from "/utils/lib.js";
 import Util from "/utils/Util.js";
 import HackUtil from "/utils/HackUtil.js";
+import ServerCache from "/ServerCache/ServerCache.js";
 
 let data = {};
 let notifications = "";
@@ -9,11 +10,13 @@ let min_threads = 0;
 let max_grow_money = 0;
 let util;
 let hacks;
+let cache;
 
 /** @param {NS} ns **/
 export async function main(ns) {
 	util = new Util(ns);
 	hacks = new HackUtil(ns);
+	cache = new ServerCache(ns);
 	if (ns.args.length > 0) {
 		hack_percent = Number(ns.args[0]);
 		ns.toast("Started with hack_percent: " + hack_percent);
@@ -45,15 +48,17 @@ export async function main(ns) {
 		let reverse_workers = workers.filter(s => true).reverse();
 
 		notifications = "";
+		// Try to weaken
+		if (hacks.get_available_RAM(...hacks.GetRunnables()) > 2)
+			await weaken_hackables(ns, hackables, reverse_workers, next_weaken_at);
+		// Try hack
 		if (hacks.get_available_RAM(...hacks.GetRunnables()) > 2)
 			await hack_hackables(ns, hackables, workers, next_hack_at);
 		// Try to grow (only grow if 100% weakend)
 		if (hacks.get_available_RAM(...hacks.GetRunnables()) > 2)
 			await grow_hackables(ns, hackables, workers, next_grow_at);
 
-		// Try to weaken
-		if (hacks.get_available_RAM(...hacks.GetRunnables()) > 2)
-			await weaken_hackables(ns, hackables, reverse_workers, next_weaken_at);
+		
 
 		await ns.sleep(1000 * 10);
 	}
@@ -112,19 +117,23 @@ async function grow_hackables(ns, hackables, workers, next_grow_at) {
 	let sVal = (s) => ns.getGrowTime(s);
 	let cmp = (s0, s1) => sVal(s0) - sVal(s1);
 	let closestFirst = hackables.sort(cmp); // .reverse();
-	closestFirst.filter(s => ns.getServerSecurityLevel(s) == ns.getServerMinSecurityLevel(s))
-				.filter(s => ns.getServerMoneyAvailable(s) < Math.min(max_grow_money, ns.getServerMaxMoney(s)));
+	closestFirst = closestFirst.filter(s => ns.getServerSecurityLevel(s) == ns.getServerMinSecurityLevel(s))
+				.filter(s => ns.getServerMoneyAvailable(s) < ns.getServerMaxMoney(s))
+				.filter(s => ns.getServerMaxMoney(s) > 0);
 	ns.tprintf("Considering grow on %s", closestFirst.join(", "));
 	for (let target of closestFirst) {
 		if (hacks.get_available_RAM(...hacks.GetRunnables()) < hacks.GROW_RAM()) return count;
-		// Only run weaken on the target if it has finished executing
-		if (target in next_grow_at) {
-			let currTime = Date.now();
-			if (next_grow_at[target] > currTime) continue;
+		let currTime = Date.now();
+		if (next_grow_at[target] > currTime) {
+			ns.tprintf("... Skipping %s for: %s", target, util.formatTime(next_grow_at[target] - Date.now()));
+			continue;
 		}
-		next_grow_at[target] = await grow(ns, target, workers);
-		if (next_grow_at[target] > 0) count++;
-		;
+		let entry = cache.getServer(target);
+		let info = await entry.smart_grow();
+		let args = [util.formatNum(info.grow_threads), info.workers, util.formatNum(info.weaken_threads), util.formatTime(info.time), entry.host_name]; //.map(num => util.formatNum(num));
+    	ns.tprintf("Started %s grow threads on %s workers and %s weaken threads. They will finish in %s. - %s", ...args);
+		next_grow_at[target] = Date.now() + info.time;
+
 	}
 	return count;
 }
@@ -134,7 +143,8 @@ async function hack_hackables(ns, hackables, workers, next_hack_at) {
 	let count = 0;
 	let highest_profit_ratio = find_best_ratio(ns, hackables)
 		.filter(s => ns.getServerSecurityLevel(s) == ns.getServerMinSecurityLevel(s))
-		.filter(s => ns.hackAnalyzeChance(s) >= 0.5);
+		.filter(s => ns.hackAnalyzeChance(s) >= 0.5)
+		.filter(s => ns.getServerMoneyAvailable(s) == ns.getServerMaxMoney(s));
 
 	ns.tprintf("Considering hack on %s", highest_profit_ratio.join(", "));
 	for (let target of highest_profit_ratio) {

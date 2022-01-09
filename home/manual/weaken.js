@@ -25,7 +25,7 @@ export async function main(ns) {
     }
     
     let finished = target.weaken_until - Date.now();
-    ns.tprintf("Started %s weaken threads. They will finish in %s millis. - %s", util.formatNum(started), util.formatNum(finished), target.host_name);
+    ns.tprintf("Started %s weaken threads. They will finish in %s millis. - %s", util.formatNum(started), util.formatTime(finished), target.host_name);
     
 
 }

@@ -20,11 +20,14 @@ export async function main(ns) {
     let workers = hacks.GetRunnables();
     let ram = util.formatNum(hacks.get_available_RAM(...workers));
     let maxRam = util.formatNum(hacks.get_max_RAM(...workers));
+    let threads = util.formatNum(hacks.get_available_threads(...workers));
+    let maxThreads = util.formatNum(hacks.get_max_threads(...workers));
 
 
     ns.tprintf("Hackable Servers: %s", hackables.length);
     ns.tprintf("Worker Servers: %s", workers.length);
     ns.tprintf("Network RAM: %s / %s GB", ram, maxRam);
+    ns.tprintf("Network Threads: %s / %s", threads, maxThreads);
 
 
     // await ns.alert("Test");
