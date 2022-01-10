@@ -3,6 +3,7 @@ import HackUtil from "/utils/HackUtil.js";
 import ServerCache from "/ServerCache/ServerCache.js";
 import PortPrograms from "/DarkWeb/PortPrograms.js";
 import Network from "/Network/Network.js";
+import * as Files from "/utils/Files.js";
 
 let NS = undefined;
 let DEBUG = true;
@@ -30,9 +31,16 @@ export default class SimplePhase {
         this.increments = 0;
         this.ticks_above = 0;
         this.ticks_below = 0;
+        this.silent = false;
+    }
+
+    tprintf(str, ...args) {
+        if (this.silent) return;
+        this.ns.tprintf(str, ...args);
     }
 
     async tick() {
+        this.silent = JSON.parse(await this.ns.read(Files.SILENT_FILE));
         const info = (str, ...args) => undefined;
         // const info = (str, ...args) => debug(str, ...args);
         info("SimplePhase().tick()");
@@ -75,7 +83,7 @@ export default class SimplePhase {
                     this.hack_percent = this.min_hack_percent + (0.025 * this.increments);
                     this.hack_percent = Math.min(this.hack_percent, this.max_hack_percent);
                     this.ticks_above = 0;
-                    this.ns.tprintf("UpgradePortPhase > Increasing Hack %% to %s", Math.floor(this.hack_percent * 10_000) / 100)
+                    this.tprintf("UpgradePortPhase > Increasing Hack %% to %s", Math.floor(this.hack_percent * 10_000) / 100)
                 }
             }
         } else {
@@ -89,7 +97,7 @@ export default class SimplePhase {
                     this.hack_percent = this.min_hack_percent + (0.025 * this.increments);
                     this.hack_percent = Math.min(this.hack_percent, this.max_hack_percent);
                     this.ticks_above = 0;
-                    this.ns.tprintf("UpgradePortPhase > Decreasing Hack %% to %s", Math.floor(this.hack_percent * 10_000) / 100)
+                    this.tprintf("UpgradePortPhase > Decreasing Hack %% to %s", Math.floor(this.hack_percent * 10_000) / 100)
                 }
             }
         }
@@ -116,27 +124,27 @@ export default class SimplePhase {
             // this.ns.tprintf("UpgradePortsPhase > Something went wrong with %s. Did not weaken, hack, or grow.", target.host_name);
         } else {
             info("... ... Nothing to do.");
-            this.ns.tprintf("Skip   > %s", target.host_name);
-            this.ns.tprintf("... Can Hack: %s", target.can_grow(this.hack_percent));
+            this.tprintf("Skip   > %s", target.host_name);
+            this.tprintf("... Can Hack: %s", target.can_grow(this.hack_percent));
             //this.get_needed_weaken_threads() === 0 && this.is_max_grow();
-            this.ns.tprintf("... Needed Weaken Threads: %s", target.get_needed_weaken_threads());
+            this.tprintf("... Needed Weaken Threads: %s", target.get_needed_weaken_threads());
             this.ns.tprintf("... Is Max Grow?: %s", target.is_max_grow());
             // is_max_grow = () => this.needed_grow_threads() <= this.running_grow_threads();
-            this.ns.tprintf("... Needed Grow Threads: %s", target.needed_grow_threads());
-            this.ns.tprintf("... Running Grow Threads: %s", target.running_grow_threads());
+            this.tprintf("... Needed Grow Threads: %s", target.needed_grow_threads());
+            this.tprintf("... Running Grow Threads: %s", target.running_grow_threads());
         }
     }
 
     async weaken(target) {
         const info = await target.smart_weaken();
-        if (info.workers === 0) return;
+        if (info.weaken_threads === 0) return;
         let args = [
             this.util.formatNum(info.weaken_threads),
             this.util.formatTime(info.time),
             target.host_name
         ]
 
-        this.ns.tprintf("Weaken > %s threads for %s - %s", ...args);
+        this.tprintf("Weaken > %s threads for %s - %s", ...args);
     }
 
     async hack(target) {
@@ -153,7 +161,7 @@ export default class SimplePhase {
         //.map(num => util.formatNum(num));
         // this.ns.tprintf("Weaken > %s threads for %s - %s", ...args);
         // this.ns.tprintf("Hack");
-        this.ns.tprintf("Hack   > %s threads on %s workers | %s counter threads | $%s * %s%% @ %s. - %s", ...args);
+        this.tprintf("Hack   > %s threads on %s workers | %s counter threads | $%s * %s%% @ %s. - %s", ...args);
 
     }
 
@@ -167,7 +175,7 @@ export default class SimplePhase {
             this.util.formatNum(info.weaken_threads),
             this.util.formatTime(info.time),
             target.host_name]; //.map(num => util.formatNum(num));
-        this.ns.tprintf("Grow   > %s threads on %s workers | %s counter threads | @ %s - %s", ...args);
+        this.tprintf("Grow   > %s threads on %s workers | %s counter threads | @ %s - %s", ...args);
     }
 
     is_complete = () => false; 
@@ -176,13 +184,14 @@ export default class SimplePhase {
         
     }
 
-    get_target_servers() {
+    get_target_servers(max) {
+        if (max === undefined) max = 3;
         // Use the 3 servers with the highest growth rate
         let cmp = (s0, s1) => this.ns.getServerGrowth(s0) - this.ns.getServerGrowth(s1);
         return this.hacks.GetHackables()
             .filter(s => this.cache.getServer(s).max_money() > 0)
             .sort(cmp)
-            .slice(0, 3);
+            .slice(0, max);
     }
 
 }
