@@ -3,6 +3,10 @@ import Augmentation from "/Faction/Augmentation.js";
 
 export default class Faction {
 
+    static HACK_WORK = "Hacking Contracts";
+    static FIELD_WORK = "Field Work";
+    static SECURITY_WORK = "Security Work";
+
     static get_invitations = (ns) => ns.checkFactionInvitations().map(f => new Faction(ns, f));
     static get_joined = (ns) => ns.getPlayer().factions.map(f => new Faction(ns, f));
     
