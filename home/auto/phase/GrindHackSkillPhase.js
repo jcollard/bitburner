@@ -44,24 +44,7 @@ export default class GrindHackSkillPhase extends SimplePhase {
 
     // Get servers that have the shortest hack time.
     get_target_servers(max) {
-        if (max === undefined) max = 1;
-        // Hack servers that have the longest weaken time first
-        let profitRatio = s => (this.cache.getServer(s).max_money() * this.ns.hackAnalyzeChance(s)) / this.ns.getWeakenTime(s);
-        let cmp_profit = (s0, s1) => profitRatio(s1) - profitRatio(s0);
-        let sVal = s => this.cache.getServer(s).security_level();
-        let cmp_weaken = (s0, s1) => sVal(s1) - sVal(s0);
-        // Start with servers with the highest security value (weaken new servers)
-        let weakest = this.hacks.GetHackables()
-            .filter(s => !this.cache.getServer(s).is_min_security())
-            .sort(cmp_weaken);
-
-        // Then hack the ones that have the highest money ratio
-        let most_profit = this.hacks.GetHackables()
-            .filter(s => this.cache.getServer(s).is_min_security())
-            .sort(cmp_profit);
-
-        weakest.push(...most_profit)
-        return weakest;
+        return super.get_target_servers(this.hacks.GetHackables().length);
     }
 
 

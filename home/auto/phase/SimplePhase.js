@@ -193,12 +193,23 @@ export default class SimplePhase {
 
     get_target_servers(max) {
         if (max === undefined) max = 3;
-        // Use the 3 servers with the highest growth rate
-        let cmp = (s0, s1) => this.ns.getServerGrowth(s1) - this.ns.getServerGrowth(s0);
-        return this.hacks.GetHackables()
-            .filter(s => this.cache.getServer(s).max_money() > 0)
-            .sort(cmp)
-            .slice(0, max);
+        // Hack servers that have the longest weaken time first
+        let profitRatio = s => (this.cache.getServer(s).max_money() * this.ns.hackAnalyzeChance(s)) / this.ns.getWeakenTime(s);
+        let cmp_profit = (s0, s1) => profitRatio(s1) - profitRatio(s0);
+        let sVal = s => this.cache.getServer(s).security_level();
+        let cmp_weaken = (s0, s1) => sVal(s1) - sVal(s0);
+        // Start with servers with the highest security value (weaken new servers)
+        let weakest = this.hacks.GetHackables()
+            .filter(s => !this.cache.getServer(s).is_min_security())
+            .sort(cmp_weaken);
+
+        // Then hack the ones that have the highest money ratio
+        let most_profit = this.hacks.GetHackables()
+            .filter(s => this.cache.getServer(s).is_min_security())
+            .sort(cmp_profit);
+
+        weakest.push(...most_profit)
+        return weakest.slice(0, max);
     }
 
 }

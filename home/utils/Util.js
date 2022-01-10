@@ -211,22 +211,26 @@ export default class Util {
 	/**
 	 * Given a number, converts it to the best 7 character length
 	 * @param {number} num 
+	 * @param {number} digits Optional number of digits to show after the decimal.
+	 * @param {number} length Optional length of the returned string
 	 * @returns A string that is 7 characters in length
 	 */
-	formatNum(num) {
+	formatNum(num, digits, length) {
+		digits = digits ? digits : 3;
+		length = length ? length : 8;
 		if (num < 1_000) {
-			return ("" + num).substring(0, 8).padStart(8, " ");
+			return sprintf("%." + digits + "f", num).padStart(length, " ");
 		}
 		if (num < 1_000_000) {
-			return this.toThousands(num);
+			return this.toThousands(num, digits, length);
 		}
 		if (num < 1_000_000_000) {
-			return this.toMillions(num);
+			return this.toMillions(num, digits, length);
 		}
 		if (num < 1_000_000_000_000) {
-			return this.toBillions(num);
+			return this.toBillions(num, digits, length);
 		}
-		return this.toTrillions(num);
+		return this.toTrillions(num, digits, length);
 	}
 
 	/**
@@ -243,12 +247,15 @@ export default class Util {
 		return this.ns.sprintf("%sm %ss", minutes, rem_seconds);
 	}
 
-	toThousands = (num) => this.__to_num(num, 1_000, "k");
-	toMillions = (num) => this.__to_num(num, 1_000_000, "m");
-	toBillions = (num) => this.__to_num(num, 1_000_000_000, "b");
-	toTrillions = (num) => this.__to_num(num, 1_000_000_000_000, "t");
-	__to_num(num, digits, ch) {
-		return ((Math.ceil(num / (digits / 1000)) / 1000) + ch).padStart(8, " ");
+	toThousands = (num, digits, length) => this.__to_num(num, 1_000, "k", digits, length);
+	toMillions = (num, digits, length) => this.__to_num(num, 1_000_000, "m", digits, length);
+	toBillions = (num, digits, length) => this.__to_num(num, 1_000_000_000, "b", digits, length);
+	toTrillions = (num, digits, length) => this.__to_num(num, 1_000_000_000_000, "t", digits, length);
+	__to_num(num, digits, ch, fdigits, length) {
+		fdigits = fdigits ? fdigits : 3;
+		length = length ? length : 8;
+		const result = num / digits;
+		return this.ns.sprintf("%." + fdigits + "f%s", result, ch).padStart(length);
 	}
 
 }

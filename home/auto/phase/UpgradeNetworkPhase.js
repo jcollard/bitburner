@@ -12,6 +12,8 @@ export default class UpgradeNetworkPhase extends SimplePhase {
 
     constructor(ns, hack_percent) {
         super(ns, hack_percent);
+        this.max_servers = 3;
+        this.increase_max_ticks = 0;
     }
 
    
@@ -27,6 +29,16 @@ export default class UpgradeNetworkPhase extends SimplePhase {
         super.before_processing(workers, available_threads);
 
     }
+
+    async end_of_tick(left_over_threads) {
+        this.increase_max_ticks += left_over_threads > 100 ? 1 : -1;
+        this.increase_max_ticks = Math.max(this.increase_max_ticks, 0);
+        if (this.increase_max_ticks > 10) {
+            this.tprintf("Upgrade Network Phase > Increasing the maximum servers checked.");
+            this.max_servers++;
+            this.increase_max_ticks = 0;
+        }
+    }
     
     is_complete = () => false;
     
@@ -35,24 +47,7 @@ export default class UpgradeNetworkPhase extends SimplePhase {
     }
 
     get_target_servers() {
-        if (max === undefined) max = 1;
-        // Hack servers that have the longest weaken time first
-        let profitRatio = s => (this.cache.getServer(s).max_money() * this.ns.hackAnalyzeChance(s)) / this.ns.getWeakenTime(s);
-        let cmp_profit = (s0, s1) => profitRatio(s1) - profitRatio(s0);
-        let sVal = s => this.cache.getServer(s).security_level();
-        let cmp_weaken = (s0, s1) => sVal(s1) - sVal(s0);
-        // Start with servers with the highest security value (weaken new servers)
-        let weakest = this.hacks.GetHackables()
-            .filter(s => !this.cache.getServer(s).is_min_security())
-            .sort(cmp_weaken);
-
-        // Then hack the ones that have the highest money ratio
-        let most_profit = this.hacks.GetHackables()
-            .filter(s => this.cache.getServer(s).is_min_security())
-            .sort(cmp_profit);
-
-        weakest.push(...most_profit);
-        return weakest;
+        return super.get_target_servers(this.max_servers);
     }
 
 }
