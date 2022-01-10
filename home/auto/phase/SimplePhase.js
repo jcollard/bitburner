@@ -60,6 +60,8 @@ export default class SimplePhase {
     }
 
     async before_processing(workers, available_threads) {
+        const info = (str, ...args) => undefined;
+        // const info = (str, ...args) => debug(str, ...args);
         // Try to open ports
         info("... %s workers with %s available threads ", workers.length, available_threads);
         info("... Trying to open ports.");
@@ -133,11 +135,14 @@ export default class SimplePhase {
             this.tprintf("... Needed Grow Threads: %s", target.needed_grow_threads());
             this.tprintf("... Running Grow Threads: %s", target.running_grow_threads());
         }
+
+        // Help with glitching.
+        await this.ns.sleep(10);
     }
 
     async weaken(target) {
         const info = await target.smart_weaken();
-        if (info.weaken_threads === 0) return;
+        if (info.weaken_threads === 0) return info;
         let args = [
             this.util.formatNum(info.weaken_threads),
             this.util.formatTime(info.time),
@@ -145,11 +150,12 @@ export default class SimplePhase {
         ]
 
         this.tprintf("Weaken > %s threads for %s - %s", ...args);
+        return info;
     }
 
     async hack(target) {
         const info = await target.smart_hack(this.hack_percent);
-        if (info.workers === 0) return;
+        if (info.workers === 0) return info;
         let args = [
             this.util.formatNum(info.hack_threads),
             this.util.formatNum(info.workers),
@@ -162,13 +168,13 @@ export default class SimplePhase {
         // this.ns.tprintf("Weaken > %s threads for %s - %s", ...args);
         // this.ns.tprintf("Hack");
         this.tprintf("Hack   > %s threads on %s workers | %s counter threads | $%s * %s%% @ %s. - %s", ...args);
-
+        return info;
     }
 
     async grow(target) {
         const info = await target.smart_grow();
 
-        if (info.workers === 0) return;
+        if (info.workers === 0) return info;
         let args = [
             this.util.formatNum(info.grow_threads),
             this.util.formatNum(info.workers),
@@ -176,6 +182,7 @@ export default class SimplePhase {
             this.util.formatTime(info.time),
             target.host_name]; //.map(num => util.formatNum(num));
         this.tprintf("Grow   > %s threads on %s workers | %s counter threads | @ %s - %s", ...args);
+        return info;
     }
 
     is_complete = () => false; 

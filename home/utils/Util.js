@@ -215,7 +215,7 @@ export default class Util {
 	 */
 	formatNum(num) {
 		if (num < 1_000) {
-			return ("" + num).substring(0, 7).padStart(7, " ");
+			return ("" + num).substring(0, 8).padStart(8, " ");
 		}
 		if (num < 1_000_000) {
 			return this.toThousands(num);
@@ -248,7 +248,7 @@ export default class Util {
 	toBillions = (num) => this.__to_num(num, 1_000_000_000, "b");
 	toTrillions = (num) => this.__to_num(num, 1_000_000_000_000, "t");
 	__to_num(num, digits, ch) {
-		return ((Math.ceil(num / (digits / 1000)) / 1000) + ch).padStart(7, " ");
+		return ((Math.ceil(num / (digits / 1000)) / 1000) + ch).padStart(8, " ");
 	}
 
 }
