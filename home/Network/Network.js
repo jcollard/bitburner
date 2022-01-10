@@ -36,6 +36,7 @@ export default class Network {
         // Sort such that servers will be backdoored the fastes
         let cmp = (s0, s1) => this.ns.getHackTime(s0) - this.ns.getHackTime(s1);
         return this.util.find_all_servers()
+            .filter(s => this.ns.getServer(s).hasAdminRights)
             // Don't include servers that have already been backdoored
             .filter(s => !this.ns.getServer(s).backdoorInstalled)
             // Only include servers that can be hacked

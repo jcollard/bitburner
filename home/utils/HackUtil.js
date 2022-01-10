@@ -65,6 +65,7 @@ export default class HackUtil {
      * @returns The amount of max RAM among the specified servers
      */
     get_max_RAM(...servers) {
+        if (servers.length === 0) return 0;
         return servers.map(s => this.ns.getServerMaxRam(s)).reduce(sum);
     }
 
@@ -73,6 +74,7 @@ export default class HackUtil {
      * @returns The amount of RAM that is available on the specified server
      */
     get_available_RAM(...servers) {
+        if (servers.length === 0) return 0;
         let ram = (s) => { 
             let available = this.ns.getServerMaxRam(s) - this.ns.getServerUsedRam(s);
             if (available < this.HACK_RAM()) return 0;
@@ -81,8 +83,8 @@ export default class HackUtil {
         return servers.map(ram).reduce(sum);
     }
 
-    get_available_threads = (...servers)  => servers.map(s => Math.floor(this.get_available_RAM(s) / this.HACK_RAM())).reduce(sum);
-    get_max_threads = (...servers) => servers.map(s => Math.floor(this.get_max_RAM(s) / this.HACK_RAM())).reduce(sum)
+    get_available_threads = (...servers)  => servers.map(s => Math.floor(this.get_available_RAM(s) / this.HACK_RAM())).reduce(sum, 0);
+    get_max_threads = (...servers) => servers.map(s => Math.floor(this.get_max_RAM(s) / this.HACK_RAM())).reduce(sum, 0);
     
 
     get_weaken_threads = (target) => this.get_threads(target, HackUtil.WEAKEN_SCRIPT);

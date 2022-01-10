@@ -37,11 +37,13 @@ export default class Faction {
     get_max_rep = () => this.get_augmentations().reduce((acc, a) => Math.max(acc, a.get_rep()), 0);
     join = () => this.ns.joinFaction(this.name);
     work = (workType, focus) => this.ns.workForFaction(this.name, workType, focus);
+    stopWork = () => this.ns.stopAction();
 
     get_needed_augmentations () {
         const cmp = (a0, a1) => a0.get_rep() - a1.get_rep();
         const owned = this.ns.getOwnedAugmentations(true);
         const missing = this.ns.getAugmentationsFromFaction(this.name)
+                             .filter(s => s !== "NeuroFlux Governor")
                              .filter(s => !owned.includes(s))
                              .map(a => new Augmentation(this.ns, a, this))
                              .sort(cmp);

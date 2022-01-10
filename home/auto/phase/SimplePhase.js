@@ -194,7 +194,7 @@ export default class SimplePhase {
     get_target_servers(max) {
         if (max === undefined) max = 3;
         // Use the 3 servers with the highest growth rate
-        let cmp = (s0, s1) => this.ns.getServerGrowth(s0) - this.ns.getServerGrowth(s1);
+        let cmp = (s0, s1) => this.ns.getServerGrowth(s1) - this.ns.getServerGrowth(s0);
         return this.hacks.GetHackables()
             .filter(s => this.cache.getServer(s).max_money() > 0)
             .sort(cmp)

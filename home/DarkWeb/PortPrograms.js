@@ -39,6 +39,12 @@ export default class PortPrograms {
      * @returns void
      */
     purchase_all_programs() {
+        // TODO: Is there a get tor price?
+        if (!this.ns.getPlayer().tor && this.ns.getPlayer().money >= 200_000) {
+            if(this.ns.purchaseTor()) {
+                this.ns.tprintf("PortPrograms > Purchased Tor!");
+            }
+        }
         for (let program of this.needed_programs()) {
             // Try to purchase, if we fail, exit.
             if(!this.ns.purchaseProgram(program)) return;

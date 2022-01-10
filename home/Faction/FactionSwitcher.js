@@ -7,13 +7,32 @@ export default class FactionSwitcher {
     }
 
     join_invited_faction() {
-        let invites = Faction.get_invitations(this.ns);
-        if (invites.length > 0) invites[0].join();
+        
+        let city_factions = ["Sector-12", "Chongqing", "New Tokyo", "Ishima", "Aevum", "Volhaven"];
+        let ignore = f_name => {
+            // If there is no restriction, go ahead and join it
+            if (!city_factions.includes(f_name)) return true;
+            // If this faction will restrict you from joining another faction, only join if you still need augments from them
+            return f.get_needed_augmentations().length > 0;
+        };
+        let invites = Faction.get_invitations(this.ns)
+                             .filter(ignore);
+        if (invites.length > 0) {
+            
+            invites[0].join();
+        }
     }
 
     check_switch_faction() {
-        let current_faction = new Faction(this.ns, this.ns.getPlayer().currentWorkFactionName);
-        if (current_faction.get_rep() >= current_faction.get_max_rep()) {
+        let player = this.ns.getPlayer();
+        let current_faction = new Faction(this.ns, player.currentWorkFactionName);
+        let current_rep = current_faction.name !== '' ? current_faction.get_rep() + player.workRepGained : 0;
+        let max_rep = current_faction.name !== '' ? current_faction.get_max_rep() : -1;
+        // this.ns.tprintf("%s", current_rep);
+        // if (current_faction.name !== '') this.ns.tprintf("Current Rate: %s %s",player.workRepGainRate, player.faction_rep_mult);
+
+        if (current_rep  >= max_rep) {
+            if (current_faction.name !== '') current_faction.stopWork();
             let sVal = f => f.get_max_rep() - f.get_rep();
             let cmp = (f0, f1) => sVal(f0) - sVal(f1);
             let joined = Faction.get_joined(this.ns)
@@ -23,7 +42,9 @@ export default class FactionSwitcher {
                                 .sort(cmp);
             if (joined.length === 0) return;
             let new_faction = joined[0];
-            new_faction.work(Faction.HACK_WORK, true);
+            // TODO: Make focus based on if you own the augment that doesn't require focus.
+            let focus = false;
+            new_faction.work(Faction.HACK_WORK, focus);
             this.ns.tprintf("Faction Switcher > Max Rep with %s switching work to %s", current_faction.name, new_faction.name);
         }
 

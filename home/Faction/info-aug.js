@@ -10,8 +10,17 @@ export async function main(_ns) {
     util = new Util(ns);
 
     if (ns.args.length === 0) return display_available_augmentations();
+    display_faction_augments(ns.args[0]);
     // if (Number.isInteger(ns.args[0])) return display_faction_info(Faction.get_joined(ns)[ns.args[0]]);
     
+}
+
+function display_faction_augments(faction_name) {
+    let faction = new Faction(ns, faction_name);
+    let needed = faction.get_needed_augmentations()
+    let all = faction.get_augmentations();
+    ns.tprintf("All: '%s'", all.map(a => a.name));
+    ns.tprintf("Needed: '%s'", needed.map(a => a.name));
 }
 
 function display_available_augmentations() {
