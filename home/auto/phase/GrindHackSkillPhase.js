@@ -34,7 +34,7 @@ export default class GrindHackSkillPhase extends SimplePhase {
         const server_info = this.net.purchase_server_info(.5);
         info("... Trying to purchase server: %s RAM @ $%s", this.util.formatNum(server_info.RAM), this.util.formatNum(server_info.price));
          // When money is available, grow the network
-         if (this.buy_server) {
+         if (this.buy_server && this.ns.getPurchasedServers().length < this.ns.getPurchasedServerLimit()) {
             this.net.purchase_server(.2);
          }
 

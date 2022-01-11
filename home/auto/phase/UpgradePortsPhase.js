@@ -40,7 +40,28 @@ export default class UpgradePortsPhase extends SimplePhase {
     
     async next_phase() {
         this.ns.tprintf("UpgradePortsPhase > Finished Phase, spawning UpgradeNetworkPhase");
-        await this.ns.spawn("/auto/phase/UpgradeNetworkPhase.js", 1, this.hack_percent);
+        await this.ns.spawn("/auto/phase/GrindHackSkillPhase.js", 1, this.hack_percent);
+    }
+
+    get_target_servers(max) {
+        if (max === undefined) max = 3;
+        // Hack servers that have the largest growth rate
+        let sVal = s => this.ns.getServerGrowth(s);
+        let cmp_weaken = (s0, s1) => sVal(s1) - sVal(s0);
+        // Start with servers with the highest security value (weaken new servers)
+        let weakest = this.hacks.GetHackables()
+            .sort(cmp_weaken).slice(0, 10);
+        // this.ns.tprintf("Weakest: %s ", weakest.length)
+
+        // const cmp = (f, rev) => (s0, s1) => rev ? s1 - s0 : s0 - s1;
+        // const best_ratio = s => (ns.getServerMaxMoney(s) * ns.hackAnalyze(s)) / ns.getWeakenTime(s);
+        // // Then hack the ones that have the highest money ratio
+        // let most_profit = this.hacks.GetHackables()
+        //     .filter(s => this.cache.getServer(s).is_min_security())
+        //     .sort(cmp(best_ratio)).slice(0, max);
+
+        // weakest.push(...most_profit)
+        return weakest;
     }
 
 }

@@ -28,10 +28,11 @@ function display_joined_factions() {
         let name = format(faction.name);
         let working = player.currentWorkFactionName === faction.name ? "X" : " ";
         let augmentations = format(faction.get_owned_augmentations().length + " / " + faction.get_augmentations().length);
-        let reputation = format(util.formatNum(faction.get_rep()) + " / " + util.formatNum(faction.get_max_rep()));
+        let bonus = player.currentWorkFactionName === faction.name ? player.workRepGained : 0;
+        let reputation = format(util.formatNum(bonus + faction.get_rep()) + " / " + util.formatNum(faction.get_max_rep()));
         let missing = faction.get_needed_augmentations();
         let missing_rep = missing.length > 0 ? util.formatNum(missing[0].get_rep()) : "--";
-        let next_rep = format(util.formatNum(faction.get_rep()) + " / " + missing_rep );
+        let next_rep = format(util.formatNum(bonus + faction.get_rep()) + " / " + missing_rep );
         let favor = format("" + faction.get_favor());
         ns.tprintf("%s %s %s | %s | %s | %s | %s ", num, working, name, augmentations, reputation, next_rep, favor);
     }
