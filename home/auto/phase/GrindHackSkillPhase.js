@@ -24,6 +24,22 @@ export default class GrindHackSkillPhase extends SimplePhase {
 
     constructor(ns) {
         super(ns);
+        this.hack_percent = .9;
+        this.buy_server = false;
+    }
+
+    async before_processing(workers, available_threads) {
+        const info = (str, ...args) => undefined;
+        // const info = (str, ...args) => debug(str, ...args);
+        const server_info = this.net.purchase_server_info(.5);
+        info("... Trying to purchase server: %s RAM @ $%s", this.util.formatNum(server_info.RAM), this.util.formatNum(server_info.price));
+         // When money is available, grow the network
+         if (this.buy_server) {
+            this.net.purchase_server(.2);
+         }
+
+        super.before_processing(workers, available_threads);
+
     }
 
     // async process(target, available_threads, workers) {
@@ -41,6 +57,10 @@ export default class GrindHackSkillPhase extends SimplePhase {
     //         await target.smart_weaken(diff);
     //     }
     // }
+    async end_of_tick(left_over_threads) {
+        this.buy_server = left_over_threads < 5000;
+        this.hack_percent = .9;
+    }
 
     // Get servers that have the shortest hack time.
     get_target_servers(max) {

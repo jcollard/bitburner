@@ -47,7 +47,7 @@ export default class UpgradeNetworkPhase extends SimplePhase {
     }
 
     get_target_servers() {
-        return super.get_target_servers(this.max_servers);
+        return super.get_target_servers(70);
     }
 
 }
