@@ -1,5 +1,6 @@
 import Util from "/utils/Util.js";
 import HackUtil from "/utils/HackUtil.js";
+import Table from "/utils/Table.js";
 
 let _report = [];
 let ns;
@@ -52,54 +53,27 @@ async function process_report(args) {
         ['sort_by', "money_ratio"],
         ['limit', 10]
     ]);
-    ns.tprint(options);
 
     const sort_f = sort_options[options["sort_by"]];
     const limit = options["limit"];
     const workers = hacks.GetHackables()
                          .sort(cmp(sort_f, true))
                          .slice(0, limit ? limit : 100);
-    let columns = [];
-    const header = (ls, h) => { 
-        let newLS = ls.filter(s => true);
-        newLS.unshift(h); 
-        return newLS; 
-    }
-    const str_id = x => "" + x;
-    const find_pad = ls => ls.reduce((acc, str) => Math.max(str.length, acc), 0);
-    const add_column = (h, ls, start, selector) => { 
-        ls = header(ls, h);
-        selector = selector ? selector : str_id;
-        let pad = find_pad(ls.map(selector)); 
-        let do_pad = s => start ? s.padEnd(pad) : s.padStart(pad); 
-        let result = ls.map(w => do_pad(selector(w)));
-        columns.push(result);
-        return result; 
-    };
-    add_column("ID", workers.map((_, ix) => ix));
-    add_column("HOST", workers, true);
-    add_column("WEAK", workers.map(w => hacks.get_weaken_threads(w)));
-    add_column("GROW", workers.map(w => hacks.get_grow_threads(w)));
-    add_column("HACK", workers.map(w => hacks.get_hack_threads(w)));
-    add_column("SECURITY", workers.map(s => ns.sprintf("%.2f", ns.getServerSecurityLevel(s) - ns.getServerMinSecurityLevel(s))));
+    const table = new Table(ns);
+    table.add_column("ID", workers.map((_, ix) => ix));
+    table.add_column("HOST", workers, true);
+    table.add_column("WEAK", workers.map(w => hacks.get_weaken_threads(w)));
+    table.add_column("GROW", workers.map(w => hacks.get_grow_threads(w)));
+    table.add_column("HACK", workers.map(w => hacks.get_hack_threads(w)));
+    table.add_column("SECURITY", workers.map(s => ns.sprintf("%.2f", ns.getServerSecurityLevel(s) - ns.getServerMinSecurityLevel(s))));
     // add_column("$ AVAILABLE", workers.map(s => "$" + util.formatNum(ns.getServerMoneyAvailable(s))));
-    add_column("$", workers.map(s => "$" + util.formatNum(ns.getServerMaxMoney(s),1)));
-    add_column("%", workers.map(s => util.formatNum(ns.hackAnalyzeChance(s),0, 5)));
-    add_column("t", workers.map(s => util.formatTime(ns.getWeakenTime(s))));
+    table.add_column("$", workers.map(s => "$" + util.formatNum(ns.getServerMaxMoney(s),1)));
+    table.add_column("%", workers.map(s => util.formatNum(ns.hackAnalyzeChance(s),0, 5)));
+    table.add_column("t", workers.map(s => util.formatTime(ns.getWeakenTime(s))));
     const ratio = (s) => (1000 * ns.getServerMaxMoney(s) * ns.hackAnalyze(s)) / ns.getWeakenTime(s);
+    table.add_column("($ * %)/s", workers.map(s => "$" + util.formatNum(ratio(s),2)));
 
-    add_column("($ * %)/s", workers.map(s => "$" + util.formatNum(ratio(s),2)));
-
-    // const elems =  [ixs, names, weaken_threads, grow_threads, hack_threads];
-    const message = columns.map(s => "%s").join(" | ");
-    ns.tprint(columns.length);
-
-    for(let ix = 0; ix < columns[0].length; ix++) {
-        // ns.ps(workers[ix]);
-        let args = columns.map( x => x[ix] );
-        ns.tprintf(message, ...args)
-        await ns.sleep(1);
-    }
+    await table.aprint();
 
 }
 
