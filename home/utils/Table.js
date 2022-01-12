@@ -6,7 +6,7 @@ export default class Table {
         this.util = new Util(ns);
         this.columns = [];
         this.width = 0;
-        this.length = undefined;
+        this.rows = undefined;
     }
 
     /**
@@ -21,9 +21,9 @@ export default class Table {
         let pad = this.find_pad(copy.map(a => a.toString()));
         let do_pad = s => padStart ? s.padEnd(pad) : s.padStart(pad);
         let result = copy.map(w => do_pad(w.toString()));
-        if (this.length === undefined) this.length = result.length;
+        if (this.rows === undefined) this.rows = result.length;
         this.columns.push(result);
-        if (this.length !== result.length) this.util.error("Columns did not match length.");
+        if (this.rows !== result.length) this.util.error("Columns did not match length.");
         this.width ++;
         return result;
     }
@@ -32,8 +32,8 @@ export default class Table {
 
     async aprint(options, delay) {
         const format = this.columns.map(s => "%s").join(" | ");
-        for (let ix = 0; ix < this.width; ix++) {
-            let args = this.columns.map(c => c[ix]);
+        for (let r = 0; r < this.rows; r++) {
+            let args = this.columns.map(c => c[r]);
             this.ns.tprintf(format, ...args);
             if (delay) await this.ns.sleep(delay);
         }
@@ -41,8 +41,8 @@ export default class Table {
 
     print(options) {
         const format = this.columns.map(s => "%s").join(" | ");
-        for (let ix = 0; ix < this.width; ix++) {
-            let args = this.columns.map(c => c[ix]);
+        for (let r = 0; r < this.rows; r++) {
+            let args = this.columns.map(c => c[r]);
             this.ns.tprintf(format, ...args);
         }
     }
