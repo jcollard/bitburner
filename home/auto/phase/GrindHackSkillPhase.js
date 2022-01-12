@@ -25,7 +25,7 @@ export default class GrindHackSkillPhase extends SimplePhase {
     constructor(ns) {
         super(ns);
         this.hack_percent = .9;
-        this.buy_server = false;
+        this.buy_server = true;
     }
 
     async before_processing(workers, available_threads) {
@@ -35,6 +35,9 @@ export default class GrindHackSkillPhase extends SimplePhase {
         info("... Trying to purchase server: %s RAM @ $%s", this.util.formatNum(server_info.RAM), this.util.formatNum(server_info.price));
          // When money is available, grow the network
          if (this.buy_server && this.ns.getPurchasedServers().length < this.ns.getPurchasedServerLimit()) {
+            // this.ns.tprintf("Purchased Servers: %s", this.ns.getPurchasedServers().length);
+            // this.ns.tprintf("Purchased Servers Limit: %s", this.ns.getPurchasedServerLimit());
+            
             this.net.purchase_server(.2);
          }
 

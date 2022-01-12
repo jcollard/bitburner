@@ -16,6 +16,11 @@ export async function main(_ns) {
     report("| net.js            |");
     report("+-------------------+");
 
+    if (ns.args[0] === "list") {
+        await process_report(ns.args.slice(1));
+        return
+    }
+
     let manifest = {};
 
     let hackables = hacks.GetHackables();
@@ -31,14 +36,29 @@ export async function main(_ns) {
     ns.tprintf("Network RAM: %s / %s GB", ram, maxRam);
     ns.tprintf("Network Threads: %s / %s", threads, maxThreads);
 
-    await process_report();
+    
 
 
     // await ns.alert("Test");
 }
 
-async function process_report() {
-    const workers = hacks.GetHackables();
+const cmp = (f, desc) => (s0, s1) => desc ? f(s1) - f(s0) : f(s0) - f(s1);
+const sort_options = {
+    "money_ratio": (s) => (1000 * ns.getServerMaxMoney(s) * ns.hackAnalyze(s)) / ns.getWeakenTime(s),
+};
+
+async function process_report(args) {
+    const options = ns.flags([
+        ['sort_by', "money_ratio"],
+        ['limit', 10]
+    ]);
+    ns.tprint(options);
+
+    const sort_f = sort_options[options["sort_by"]];
+    const limit = options["limit"];
+    const workers = hacks.GetHackables()
+                         .sort(cmp(sort_f, true))
+                         .slice(0, limit ? limit : 100);
     let columns = [];
     const header = (ls, h) => { 
         let newLS = ls.filter(s => true);
@@ -78,7 +98,7 @@ async function process_report() {
         // ns.ps(workers[ix]);
         let args = columns.map( x => x[ix] );
         ns.tprintf(message, ...args)
-        await ns.sleep(10);
+        await ns.sleep(1);
     }
 
 }

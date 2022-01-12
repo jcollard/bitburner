@@ -11,6 +11,7 @@ export default class Augmentation {
     get_cost = () => this.ns.getAugmentationCost(this.name)[1];
     get_prereq = () => this.ns.getAugmentationPrereq(this.name);
     get_stats = () => this.ns.getAugmentationStats(this.name);
+    purchase = () => this.ns.purchaseAugmentation(this.faction.name, this.name);
     get_str_stats() {
         let stats = this.ns.getAugmentationStats(this.name);
         let out = [];
